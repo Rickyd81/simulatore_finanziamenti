@@ -408,7 +408,8 @@ textarea {
   }
 }
 
-input[type='number'] {
+input[type='number'],
+input.importo {
   text-align: right;
 }
 
