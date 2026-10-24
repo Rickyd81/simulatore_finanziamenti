@@ -20,6 +20,16 @@ public enum Finalita
     Altro
 }
 
+public static class FinalitaExtensions
+{
+    /// <summary>
+    /// Finalità legate a un immobile da acquistare o già ipotecato, per le quali il cliente
+    /// indica il valore dell'immobile (stesso elenco di FINALITA_MUTUO nel front-end).
+    /// </summary>
+    public static bool RichiedeImmobile(this Finalita finalita) =>
+        finalita is Finalita.AcquistoPrimaCasa or Finalita.AcquistoSecondaCasa or Finalita.Surroga;
+}
+
 public enum TipoTasso
 {
     Fisso,

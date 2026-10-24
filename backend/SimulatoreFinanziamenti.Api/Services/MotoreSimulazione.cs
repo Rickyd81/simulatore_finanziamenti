@@ -72,12 +72,15 @@ public class MotoreSimulazione
             motivi.Add($"Alla scadenza il richiedente non deve superare {etaFine} anni");
         if (p.ProvinceAmmesse.Count > 0 && (r.Provincia is null || !p.ProvinceAmmesse.Contains(r.Provincia, StringComparer.OrdinalIgnoreCase)))
             motivi.Add("Non disponibile nella provincia indicata");
-        if (p.Tipologia == TipologiaProdotto.Mutuo)
+        // Il valore dell'immobile si chiede solo per le finalità legate a un immobile: per le altre
+        // (es. un mutuo di liquidità) il simulatore non lo raccoglie e l'LTV non si verifica.
+        if (ltv is null)
         {
-            if (ltv is null) motivi.Add("Indicare il valore dell'immobile");
-            else if (p.LtvMassimo is { } ltvMax && ltv > ltvMax)
-                motivi.Add($"Finanziabile al massimo il {ltvMax:0.##}% del valore dell'immobile");
+            if (p.Tipologia == TipologiaProdotto.Mutuo && r.Finalita.RichiedeImmobile())
+                motivi.Add("Indicare il valore dell'immobile");
         }
+        else if (p.LtvMassimo is { } ltvMax && ltv > ltvMax)
+            motivi.Add($"Finanziabile al massimo il {ltvMax:0.##}% del valore dell'immobile");
         return motivi;
     }
 
