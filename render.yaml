@@ -1,0 +1,14 @@
+# Blueprint Render: in Render scegli New > Blueprint e seleziona questo repository.
+services:
+  - type: web
+    name: simulatore-finanziamenti
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/tabelle
+    envVars:
+      # Password dell'area banca: Render la chiede alla creazione del servizio.
+      - key: AreaBanca__Password
+        sync: false

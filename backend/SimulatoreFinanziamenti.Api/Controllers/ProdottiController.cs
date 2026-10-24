@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimulatoreFinanziamenti.Api.Data;
@@ -8,6 +9,7 @@ namespace SimulatoreFinanziamenti.Api.Controllers;
 /// <summary>Fabbrica prodotti: anagrafica dei prodotti e relativo condizioniere.</summary>
 [ApiController]
 [Route("api/prodotti")]
+[Authorize(Policy = AccessoController.Politica)]
 public class ProdottiController(SimulatoreDbContext db) : ControllerBase
 {
     [HttpGet]

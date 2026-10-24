@@ -324,7 +324,7 @@ table.lista {
     font-size: 14px;
     text-align: left;
 
-    &::after {
+    &:is(button)::after {
       content: '⌃';
       margin-left: auto;
       font-size: 16px;
@@ -382,6 +382,7 @@ table.lista {
 }
 
 input[type='text'],
+input[type='password'],
 input[type='number'],
 input[type='date'],
 select,

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SimulatoreFinanziamenti.Api.Data;
@@ -8,6 +9,7 @@ namespace SimulatoreFinanziamenti.Api.Controllers;
 /// <summary>Indici di riferimento per i tassi variabili (es. Euribor).</summary>
 [ApiController]
 [Route("api/indici")]
+[Authorize(Policy = AccessoController.Politica)]
 public class IndiciController(SimulatoreDbContext db) : ControllerBase
 {
     [HttpGet]

@@ -15,6 +15,9 @@
       @for (voce of banca; track voce.percorso) {
         <a [routerLink]="voce.percorso" routerLinkActive="attivo">{{ voce.etichetta }}</a>
       }
+      @if (accesso.autenticato() && accesso.passwordRichiesta()) {
+        <button type="button" class="esci" (click)="esci()">Esci</button>
+      }
     </nav>
 
     <main class="contenuto">
