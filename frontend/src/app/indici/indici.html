@@ -1,0 +1,79 @@
+<div class="pagina">
+  <div class="pagina-intestazione">
+    <button type="button" class="btn btn-scuro" (click)="apri(null)">Nuovo indice</button>
+    <span class="tenue"
+      >Il TAN dei prodotti a tasso variabile è dato dal valore dell'indice più lo spread della
+      condizione di tasso.</span
+    >
+  </div>
+
+  @if (errore(); as e) {
+    <p class="messaggio errore">{{ e }}</p>
+  }
+
+  <div class="tabella-contenitore">
+    <table class="lista">
+      <thead>
+        <tr>
+          <th>Codice indice</th>
+          <th>Descrizione</th>
+          <th class="num">Valore</th>
+          <th>Data rilevazione</th>
+          <th class="azioni"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (i of indici(); track i.codice) {
+          <tr [class.selezionata]="inModifica()?.codice === i.codice">
+            <td>{{ i.codice }}</td>
+            <td>{{ i.descrizione }}</td>
+            <td class="num">{{ i.valore | number: '1.2-4' }} %</td>
+            <td>{{ i.dataRilevazione | date: 'dd/MM/yyyy' }}</td>
+            <td class="azioni">
+              <button type="button" class="btn-icona" title="Modifica" (click)="apri(i)">
+                <app-icona nome="modifica" />
+              </button>
+              <button type="button" class="btn-icona elimina" title="Elimina" (click)="elimina(i)">
+                <app-icona nome="elimina" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr class="vuota">
+            <td colspan="5">Nessun indice configurato</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (inModifica()) {
+    <form class="editor" [formGroup]="form" (ngSubmit)="salva()">
+      <div class="sezione">
+        <div class="sezione-titolo">Dati indice</div>
+        <div class="sezione-corpo griglia">
+          <div class="campo">
+            <label for="iCodice">Codice *</label>
+            <input id="iCodice" type="text" formControlName="codice" maxlength="20" />
+          </div>
+          <div class="campo">
+            <label for="iDescrizione">Descrizione *</label>
+            <input id="iDescrizione" type="text" formControlName="descrizione" />
+          </div>
+          <div class="campo">
+            <label for="iValore">Valore (%) *</label>
+            <input id="iValore" type="number" step="0.001" formControlName="valore" />
+          </div>
+          <div class="campo">
+            <label for="iData">Data rilevazione *</label>
+            <input id="iData" type="date" formControlName="dataRilevazione" />
+          </div>
+        </div>
+      </div>
+      <div class="azioni-fondo">
+        <button type="submit" class="btn">Salva</button>
+        <button type="button" class="btn" (click)="inModifica.set(null)">Annulla</button>
+      </div>
+    </form>
+  }
+</div>

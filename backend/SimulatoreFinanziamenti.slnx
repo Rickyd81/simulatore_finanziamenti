@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SimulatoreFinanziamenti.Api/SimulatoreFinanziamenti.Api.csproj" />
+  <Project Path="SimulatoreFinanziamenti.Tests/SimulatoreFinanziamenti.Tests.csproj" />
+</Solution>

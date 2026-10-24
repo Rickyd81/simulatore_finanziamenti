@@ -1,0 +1,24 @@
+<div class="cornice">
+  <header class="barra-titolo">
+    <span class="logo" aria-hidden="true">⧉</span>
+    <h1>{{ titolo() }}</h1>
+    <span class="marchio">Simulatore finanziamenti</span>
+  </header>
+
+  <div class="corpo">
+    <nav class="menu" aria-label="Menù principale">
+      <span class="menu-gruppo">Portale clienti</span>
+      @for (voce of portale; track voce.percorso) {
+        <a [routerLink]="voce.percorso" routerLinkActive="attivo">{{ voce.etichetta }}</a>
+      }
+      <span class="menu-gruppo">Area banca</span>
+      @for (voce of banca; track voce.percorso) {
+        <a [routerLink]="voce.percorso" routerLinkActive="attivo">{{ voce.etichetta }}</a>
+      }
+    </nav>
+
+    <main class="contenuto">
+      <router-outlet />
+    </main>
+  </div>
+</div>

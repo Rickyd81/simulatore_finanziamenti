@@ -1,0 +1,305 @@
+@if (errore(); as e) {
+  <p class="messaggio errore">{{ e }}</p>
+}
+
+<div class="pagina-intestazione">
+  <button type="button" class="btn btn-scuro" (click)="nuova()">Nuova condizione</button>
+  <span class="spaziatore"></span>
+  <div class="cifra">
+    <div class="etichetta">Condizioni configurate</div>
+    <div class="valore">{{ condizioni().length }}</div>
+  </div>
+</div>
+
+<div class="tabella-contenitore">
+  <table class="lista">
+    <thead>
+      <tr>
+        <th class="ordinabile" (click)="stato.ordina('codice')">
+          Codice condizione <span class="ordinamento">{{ stato.icona('codice') }}</span>
+        </th>
+        <th class="ordinabile" (click)="stato.ordina('categoria')">
+          Categoria <span class="ordinamento">{{ stato.icona('categoria') }}</span>
+        </th>
+        <th class="ordinabile" (click)="stato.ordina('descrizione')">
+          Descrizione <span class="ordinamento">{{ stato.icona('descrizione') }}</span>
+        </th>
+        <th class="num ordinabile" (click)="stato.ordina('valore')">
+          Valore <span class="ordinamento">{{ stato.icona('valore') }}</span>
+        </th>
+        <th>Periodicità</th>
+        <th>Fasce</th>
+        <th class="azioni"></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (c of stato.visibili(); track c.id) {
+        <tr
+          [class.evidenziata]="c.categoria === 'Tasso'"
+          [class.selezionata]="inModifica()?.id === c.id"
+        >
+          <td>{{ c.codice }}</td>
+          <td>{{ c.categoria | decodifica: 'categorieCondizione' }}</td>
+          <td>
+            {{ c.descrizione }}
+            @if (c.finalita) {
+              <span class="badge">{{ c.finalita | decodifica: 'finalita' }}</span>
+            }
+          </td>
+          <td class="num">
+            @if (c.tipoValore === 'Percentuale') {
+              {{ c.valore | number: '1.2-4' }} %
+            } @else {
+              {{ c.valore | number: '1.2-2' }} €
+            }
+          </td>
+          <td>{{ c.periodicita | decodifica: 'periodicita' }}</td>
+          <td>{{ fasce(c) }}</td>
+          <td class="azioni">
+            <button type="button" class="btn-icona" title="Modifica" (click)="apri(c)">
+              <app-icona nome="modifica" />
+            </button>
+            <button type="button" class="btn-icona elimina" title="Elimina" (click)="elimina(c)">
+              <app-icona nome="elimina" />
+            </button>
+          </td>
+        </tr>
+      } @empty {
+        <tr class="vuota">
+          <td colspan="7">
+            Nessuna condizione: aggiungi almeno una condizione di tasso perché il prodotto sia
+            simulabile.
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+<div class="sotto-tabella">
+  <span class="tenue">
+    @if (tipoTasso() === 'Variabile') {
+      Prodotto a tasso variabile: il valore delle condizioni di tasso è lo spread sull'indice.
+    } @else {
+      Se più condizioni di tasso sono applicabili, vale la prima in ordine di codice.
+    }
+  </span>
+  <app-paginatore [stato]="stato" />
+</div>
+
+@if (inModifica(); as m) {
+  <form class="editor" [formGroup]="form" (ngSubmit)="salva()">
+    <div class="sezione">
+      <button
+        type="button"
+        class="sezione-titolo"
+        [class.chiusa]="sezioneChiusa('generali')"
+        (click)="alternaSezione('generali')"
+      >
+        Dati generali
+      </button>
+      @if (!sezioneChiusa('generali')) {
+        <div class="sezione-corpo griglia">
+          <div class="campo" [class.non-valido]="nonValido('codice')">
+            <label for="cCodice">Codice condizione *</label>
+            <input id="cCodice" type="text" formControlName="codice" maxlength="20" />
+            @if (nonValido('codice')) {
+              <span class="errore">Il campo è obbligatorio</span>
+            }
+          </div>
+          <div class="campo" [class.non-valido]="nonValido('categoria')">
+            <label for="cCategoria">Categoria *</label>
+            <select id="cCategoria" formControlName="categoria">
+              <option [ngValue]="null">Seleziona un opzione</option>
+              @for (t of tabelle()?.categorieCondizione; track t.codice) {
+                <option [ngValue]="t.codice">{{ t.descrizione }}</option>
+              }
+            </select>
+            @if (nonValido('categoria')) {
+              <span class="errore">Il campo è obbligatorio</span>
+            }
+          </div>
+          <div class="campo largo" [class.non-valido]="nonValido('descrizione')">
+            <label for="cDescrizione">Descrizione *</label>
+            <textarea id="cDescrizione" formControlName="descrizione" rows="2"></textarea>
+            @if (nonValido('descrizione')) {
+              <span class="errore">Il campo è obbligatorio</span>
+            }
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="sezione">
+      <button
+        type="button"
+        class="sezione-titolo"
+        [class.chiusa]="sezioneChiusa('attributi')"
+        (click)="alternaSezione('attributi')"
+      >
+        Attributi
+      </button>
+      @if (!sezioneChiusa('attributi')) {
+        <div class="sezione-corpo griglia">
+          <div class="campo">
+            <label for="cFinalita">Solo per la finalità</label>
+            <select id="cFinalita" formControlName="finalita">
+              <option [ngValue]="null">Tutte</option>
+              @for (f of tabelle()?.finalita; track f.codice) {
+                <option [ngValue]="f.codice">{{ f.descrizione }}</option>
+              }
+            </select>
+          </div>
+          <div class="campo">
+            <span class="etichetta">Fascia di importo (€)</span>
+            <div class="intervallo">
+              <input
+                type="number"
+                min="0"
+                placeholder="da"
+                aria-label="Importo da"
+                formControlName="fasciaImportoDa"
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder="a"
+                aria-label="Importo a"
+                formControlName="fasciaImportoA"
+              />
+            </div>
+          </div>
+          <div class="campo">
+            <span class="etichetta">Fascia di durata (mesi)</span>
+            <div class="intervallo">
+              <input
+                type="number"
+                min="1"
+                placeholder="da"
+                aria-label="Durata da"
+                formControlName="fasciaDurataDaMesi"
+              />
+              <input
+                type="number"
+                min="1"
+                placeholder="a"
+                aria-label="Durata a"
+                formControlName="fasciaDurataAMesi"
+              />
+            </div>
+          </div>
+          <div class="campo">
+            <span class="etichetta">Fascia di LTV (%)</span>
+            <div class="intervallo">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="da"
+                aria-label="LTV da"
+                formControlName="fasciaLtvDa"
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="a"
+                aria-label="LTV a"
+                formControlName="fasciaLtvA"
+              />
+            </div>
+            <span class="aiuto">Le fasce vuote valgono per qualsiasi valore.</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="sezione">
+      <button
+        type="button"
+        class="sezione-titolo"
+        [class.chiusa]="sezioneChiusa('valori')"
+        (click)="alternaSezione('valori')"
+      >
+        Valori
+      </button>
+      @if (!sezioneChiusa('valori')) {
+        <div class="sezione-corpo griglia">
+          @if (!tasso()) {
+            <div class="campo">
+              <label for="cTipoValore">Tipo valore *</label>
+              <select id="cTipoValore" formControlName="tipoValore">
+                @for (t of tabelle()?.tipiValore; track t.codice) {
+                  <option [value]="t.codice">{{ t.descrizione }}</option>
+                }
+              </select>
+            </div>
+          }
+          <div class="campo" [class.non-valido]="nonValido('valore')">
+            <label for="cValore">
+              @if (tasso()) {
+                {{ tipoTasso() === 'Variabile' ? 'Spread (%)' : 'TAN (%)' }} *
+              } @else {
+                {{ percentuale() ? "Percentuale sull'importo (%)" : 'Importo (€)' }} *
+              }
+            </label>
+            <input id="cValore" type="number" step="0.01" formControlName="valore" />
+            @if (nonValido('valore')) {
+              <span class="errore">Il campo è obbligatorio</span>
+            }
+          </div>
+          @if (!tasso()) {
+            <div class="campo">
+              <label for="cPeriodicita">Periodicità *</label>
+              <select id="cPeriodicita" formControlName="periodicita">
+                @for (t of tabelle()?.periodicita; track t.codice) {
+                  <option [value]="t.codice">{{ t.descrizione }}</option>
+                }
+              </select>
+            </div>
+            @if (percentuale()) {
+              <div class="campo">
+                <span class="etichetta">Minimo / massimo (€)</span>
+                <div class="intervallo">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="min"
+                    aria-label="Importo minimo"
+                    formControlName="importoMinimo"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="max"
+                    aria-label="Importo massimo"
+                    formControlName="importoMassimo"
+                  />
+                </div>
+              </div>
+            }
+            <div class="campo">
+              <span class="etichetta">TAEG</span>
+              <label class="spunta"
+                ><input type="checkbox" formControlName="inclusaNelTaeg" /> Inclusa nel calcolo del
+                TAEG</label
+              >
+            </div>
+          }
+          <div class="campo" [class.non-valido]="nonValido('dataInizioValidita')">
+            <label for="cInizio">Data inizio validità *</label>
+            <input id="cInizio" type="date" formControlName="dataInizioValidita" />
+          </div>
+          <div class="campo">
+            <label for="cFine">Data fine validità</label>
+            <input id="cFine" type="date" formControlName="dataFineValidita" />
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="azioni-fondo">
+      <button type="submit" class="btn">{{ m.id ? 'Aggiorna' : 'Inserisci' }}</button>
+      <button type="button" class="btn" (click)="chiudi()">Annulla</button>
+    </div>
+  </form>
+}

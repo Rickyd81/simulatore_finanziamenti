@@ -1,0 +1,54 @@
+.intro {
+  margin: 0 0 16px;
+  max-width: 760px;
+}
+
+.comandi {
+  margin-top: 18px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+h3 {
+  margin: 22px 0 4px;
+  font-size: 15px;
+}
+
+.risultati {
+  margin-top: 28px;
+}
+
+.badge {
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+.esclusi {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.dettaglio {
+  margin-top: 28px;
+
+  .schede {
+    margin: 0 0 14px;
+  }
+
+  .pagina-intestazione p {
+    margin: 4px 0 0;
+  }
+}
+
+.riepilogo .campo {
+  gap: 4px;
+}
+
+.avvertenza {
+  margin-top: 14px;
+  font-size: 12.5px;
+}

@@ -1,0 +1,97 @@
+<div class="pagina">
+  <div class="pagina-intestazione">
+    <div class="campo">
+      <label for="cerca">Ricerca prodotto</label>
+      <input
+        id="cerca"
+        type="text"
+        placeholder="Codice o nome"
+        [ngModel]="filtro()"
+        (ngModelChange)="filtro.set($event); stato.pagina.set(1)"
+      />
+    </div>
+    <button type="button" class="btn btn-scuro" (click)="apri(null)">Nuovo prodotto</button>
+    <span class="spaziatore"></span>
+    <div class="cifra">
+      <div class="etichetta">Prodotti configurati</div>
+      <div class="valore">{{ prodotti().length }}</div>
+    </div>
+    <div class="cifra">
+      <div class="etichetta">Prodotti attivi</div>
+      <div class="valore">{{ attivi() }}</div>
+    </div>
+  </div>
+
+  @if (errore(); as e) {
+    <p class="messaggio errore">{{ e }}</p>
+  }
+
+  <div class="tabella-contenitore">
+    <table class="lista">
+      <thead>
+        <tr>
+          <th class="ordinabile" (click)="stato.ordina('codice')">
+            Codice prodotto <span class="ordinamento">{{ stato.icona('codice') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('nome')">
+            Descrizione prodotto <span class="ordinamento">{{ stato.icona('nome') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('tipologia')">
+            Tipologia <span class="ordinamento">{{ stato.icona('tipologia') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('tipoTasso')">
+            Tasso <span class="ordinamento">{{ stato.icona('tipoTasso') }}</span>
+          </th>
+          <th class="num ordinabile" (click)="stato.ordina('importoMassimo')">
+            Importo <span class="ordinamento">{{ stato.icona('importoMassimo') }}</span>
+          </th>
+          <th class="num ordinabile" (click)="stato.ordina('durataMassimaMesi')">
+            Durata (mesi) <span class="ordinamento">{{ stato.icona('durataMassimaMesi') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('attivo')">
+            Stato <span class="ordinamento">{{ stato.icona('attivo') }}</span>
+          </th>
+          <th class="azioni"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of stato.visibili(); track p.id) {
+          <tr>
+            <td>{{ p.codice }}</td>
+            <td>{{ p.nome }}</td>
+            <td>{{ p.tipologia | decodifica: 'tipologie' }}</td>
+            <td>{{ p.tipoTasso | decodifica: 'tipiTasso' }}</td>
+            <td class="num">
+              {{ p.importoMinimo | number: '1.0-0' }} – {{ p.importoMassimo | number: '1.0-0' }}
+            </td>
+            <td class="num">{{ p.durataMinimaMesi }} – {{ p.durataMassimaMesi }}</td>
+            <td>
+              <span class="badge" [class.attivo]="p.attivo" [class.inattivo]="!p.attivo">{{
+                p.attivo ? 'Attivo' : 'Non attivo'
+              }}</span>
+            </td>
+            <td class="azioni">
+              <button type="button" class="btn-icona" title="Modifica" (click)="apri(p)">
+                <app-icona nome="modifica" />
+              </button>
+              <button type="button" class="btn-icona elimina" title="Elimina" (click)="elimina(p)">
+                <app-icona nome="elimina" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr class="vuota">
+            <td colspan="8">Nessun prodotto trovato</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sotto-tabella">
+    <button type="button" class="btn" (click)="scarica()">
+      <app-icona nome="scarica" /> Scarica File
+    </button>
+    <app-paginatore [stato]="stato" />
+  </div>
+</div>

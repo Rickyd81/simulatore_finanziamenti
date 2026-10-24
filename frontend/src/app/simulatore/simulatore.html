@@ -1,0 +1,333 @@
+<div class="pagina">
+  <form [formGroup]="form" (ngSubmit)="calcola()" class="richiesta">
+    <p class="tenue intro">
+      Inserisci i dati del finanziamento che ti interessa: ti mostriamo i prodotti della banca
+      adatti a te, con rata, TAN, TAEG e piano di ammortamento.
+    </p>
+
+    <div class="griglia">
+      <div class="campo" [class.non-valido]="nonValido('finalita')">
+        <label for="finalita">Finalità *</label>
+        <select id="finalita" formControlName="finalita">
+          @for (f of tabelle()?.finalita; track f.codice) {
+            <option [value]="f.codice">{{ f.descrizione }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="campo" [class.non-valido]="nonValido('importo')">
+        <label for="importo">Importo richiesto (€) *</label>
+        <input id="importo" type="number" min="1000" step="1000" formControlName="importo" />
+        @if (nonValido('importo')) {
+          <span class="errore">Inserisci un importo di almeno 1.000 €</span>
+        }
+      </div>
+
+      @if (mutuo()) {
+        <div class="campo" [class.non-valido]="nonValido('valoreImmobile')">
+          <label for="valore">Valore dell'immobile (€) *</label>
+          <input
+            id="valore"
+            type="number"
+            min="1000"
+            step="1000"
+            formControlName="valoreImmobile"
+          />
+          @if (nonValido('valoreImmobile')) {
+            <span class="errore">Il campo è obbligatorio</span>
+          }
+        </div>
+      }
+
+      <div class="campo">
+        <label for="durata">Durata *</label>
+        <select id="durata" formControlName="durataMesi">
+          @for (d of durate(); track d.mesi) {
+            <option [ngValue]="d.mesi">{{ d.etichetta }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="campo">
+        <label for="provincia">{{
+          mutuo() ? "Provincia dell'immobile" : 'Provincia di residenza'
+        }}</label>
+        <select id="provincia" formControlName="provincia">
+          <option value="">Seleziona un'opzione</option>
+          @for (p of tabelle()?.province; track p.codice) {
+            <option [value]="p.codice">{{ p.descrizione }} ({{ p.codice }})</option>
+          }
+        </select>
+      </div>
+
+      <div class="campo" [class.non-valido]="nonValido('etaRichiedente')">
+        <label for="eta">Età del richiedente *</label>
+        <input id="eta" type="number" min="18" max="99" formControlName="etaRichiedente" />
+        @if (nonValido('etaRichiedente')) {
+          <span class="errore">L'età deve essere compresa tra 18 e 99 anni</span>
+        }
+      </div>
+    </div>
+
+    <div class="comandi">
+      <button type="submit" class="btn btn-scuro" [disabled]="caricamento()">
+        {{ caricamento() ? 'Calcolo in corso…' : 'Calcola la rata' }}
+      </button>
+    </div>
+  </form>
+
+  @if (errore(); as e) {
+    <p class="messaggio errore">{{ e }}</p>
+  }
+
+  @if (risultato(); as r) {
+    <section class="risultati">
+      <div class="pagina-intestazione">
+        <h2>Prodotti disponibili</h2>
+        <span class="spaziatore"></span>
+        @if (r.ltv !== null) {
+          <div class="cifra">
+            <div class="etichetta">Loan to value</div>
+            <div class="valore">{{ r.ltv | number: '1.2-2' }} %</div>
+          </div>
+        }
+        <div class="cifra">
+          <div class="etichetta">Offerte trovate</div>
+          <div class="valore">{{ r.offerte.length }}</div>
+        </div>
+      </div>
+
+      @if (r.offerte.length === 0) {
+        <p class="messaggio">
+          Nessun prodotto è disponibile per i dati inseriti. Prova a modificare importo, durata o
+          valore dell'immobile.
+        </p>
+      } @else {
+        <div class="tabella-contenitore">
+          <table class="lista">
+            <thead>
+              <tr>
+                <th class="ordinabile" (click)="statoOfferte.ordina('nome')">
+                  Prodotto <span class="ordinamento">{{ statoOfferte.icona('nome') }}</span>
+                </th>
+                <th class="ordinabile" (click)="statoOfferte.ordina('tipoTasso')">
+                  Tasso <span class="ordinamento">{{ statoOfferte.icona('tipoTasso') }}</span>
+                </th>
+                <th class="num ordinabile" (click)="statoOfferte.ordina('tan')">
+                  TAN <span class="ordinamento">{{ statoOfferte.icona('tan') }}</span>
+                </th>
+                <th class="num ordinabile" (click)="statoOfferte.ordina('taeg')">
+                  TAEG <span class="ordinamento">{{ statoOfferte.icona('taeg') }}</span>
+                </th>
+                <th class="num ordinabile" (click)="statoOfferte.ordina('rata')">
+                  Rata mensile <span class="ordinamento">{{ statoOfferte.icona('rata') }}</span>
+                </th>
+                <th class="num ordinabile" (click)="statoOfferte.ordina('importoTotaleDovuto')">
+                  Totale dovuto
+                  <span class="ordinamento">{{ statoOfferte.icona('importoTotaleDovuto') }}</span>
+                </th>
+                <th class="azioni"></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (o of statoOfferte.visibili(); track o.prodottoId) {
+                <tr
+                  [class.selezionata]="selezionata() === o"
+                  [class.evidenziata]="o === r.offerte[0]"
+                >
+                  <td>
+                    {{ o.nome }}
+                    @if (o === r.offerte[0]) {
+                      <span class="badge attivo">TAEG più basso</span>
+                    }
+                  </td>
+                  <td>{{ o.tipoTasso | decodifica: 'tipiTasso' }}</td>
+                  <td class="num">{{ o.tan | number: '1.2-2' }} %</td>
+                  <td class="num">{{ o.taeg | number: '1.2-2' }} %</td>
+                  <td class="num">{{ o.rata | currency }}</td>
+                  <td class="num">{{ o.importoTotaleDovuto | currency }}</td>
+                  <td class="azioni">
+                    <button
+                      type="button"
+                      class="btn-icona"
+                      title="Dettaglio offerta"
+                      (click)="apri(o)"
+                    >
+                      <app-icona nome="apri" />
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (r.nonDisponibili.length) {
+        <div class="sezione">
+          <button
+            type="button"
+            class="sezione-titolo"
+            [class.chiusa]="!mostraEsclusi()"
+            (click)="mostraEsclusi.set(!mostraEsclusi())"
+          >
+            Prodotti non disponibili per questa richiesta ({{ r.nonDisponibili.length }})
+          </button>
+          @if (mostraEsclusi()) {
+            <ul class="sezione-corpo esclusi">
+              @for (n of r.nonDisponibili; track n.prodottoId) {
+                <li>
+                  <strong>{{ n.nome }}</strong
+                  >: {{ n.motivi.join('; ') }}
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (selezionata(); as o) {
+    <section class="dettaglio">
+      <div class="schede">
+        <button
+          type="button"
+          [class.attiva]="scheda() === 'riepilogo'"
+          (click)="scheda.set('riepilogo')"
+        >
+          <span>Riepilogo offerta</span>
+        </button>
+        <button type="button" [class.attiva]="scheda() === 'piano'" (click)="scheda.set('piano')">
+          <span>Piano di ammortamento</span>
+        </button>
+      </div>
+
+      <div class="pagina-intestazione">
+        <div>
+          <h2>{{ o.nome }}</h2>
+          @if (o.descrizione) {
+            <p class="tenue">{{ o.descrizione }}</p>
+          }
+        </div>
+        <span class="spaziatore"></span>
+        <div class="cifra">
+          <div class="etichetta">Rata mensile</div>
+          <div class="valore">{{ o.rata | currency }}</div>
+        </div>
+        <div class="cifra">
+          <div class="etichetta">TAN</div>
+          <div class="valore">{{ o.tan | number: '1.2-2' }} %</div>
+        </div>
+        <div class="cifra">
+          <div class="etichetta">TAEG</div>
+          <div class="valore">{{ o.taeg | number: '1.2-2' }} %</div>
+        </div>
+      </div>
+
+      @if (scheda() === 'riepilogo') {
+        <div class="griglia riepilogo">
+          <div class="campo">
+            <span class="etichetta">Importo finanziato</span>{{ o.importo | currency }}
+          </div>
+          <div class="campo">
+            <span class="etichetta">Durata</span>{{ o.durataMesi }} mesi ({{
+              o.durataMesi / 12 | number: '1.0-1'
+            }}
+            anni)
+          </div>
+          <div class="campo">
+            <span class="etichetta">Tipo di tasso</span>
+            {{ o.tipoTasso | decodifica: 'tipiTasso' }}
+            @if (o.tipoTasso === 'Variabile') {
+              <span class="tenue"
+                >{{ o.indiceRiferimento }} {{ o.valoreIndice | number: '1.2-2' }}% + spread
+                {{ o.spread | number: '1.2-2' }}%</span
+              >
+            }
+          </div>
+          <div class="campo">
+            <span class="etichetta">Totale interessi</span>{{ o.totaleInteressi | currency }}
+          </div>
+          <div class="campo">
+            <span class="etichetta">Totale spese e imposte</span>{{ o.totaleSpese | currency }}
+          </div>
+          <div class="campo">
+            <span class="etichetta">Importo totale dovuto</span
+            >{{ o.importoTotaleDovuto | currency }}
+          </div>
+        </div>
+
+        <h3>Spese, commissioni e imposte</h3>
+        <div class="tabella-contenitore">
+          <table class="lista">
+            <thead>
+              <tr>
+                <th>Voce</th>
+                <th>Periodicità</th>
+                <th class="num">Importo</th>
+                <th class="num">Totale sulla durata</th>
+                <th>Nel TAEG</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of o.costi; track c.codice) {
+                <tr>
+                  <td>{{ c.descrizione }}</td>
+                  <td>{{ c.periodicita | decodifica: 'periodicita' }}</td>
+                  <td class="num">{{ c.importo | currency }}</td>
+                  <td class="num">{{ c.importoTotale | currency }}</td>
+                  <td>{{ c.inclusaNelTaeg ? 'Sì' : 'No' }}</td>
+                </tr>
+              } @empty {
+                <tr class="vuota">
+                  <td colspan="5">Nessuna spesa prevista</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="tenue avvertenza">
+          Simulazione a scopo informativo, non costituisce offerta. Per i prodotti a tasso variabile
+          il calcolo ipotizza che l'indice resti invariato per tutta la durata. Le condizioni
+          definitive sono riportate nei documenti di trasparenza della banca.
+        </p>
+      } @else {
+        <div class="tabella-contenitore">
+          <table class="lista">
+            <thead>
+              <tr>
+                <th class="num">N.</th>
+                <th>Scadenza</th>
+                <th class="num">Rata</th>
+                <th class="num">Quota capitale</th>
+                <th class="num">Quota interessi</th>
+                <th class="num">Spese</th>
+                <th class="num">Debito residuo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (rp of statoPiano.visibili(); track rp.numero) {
+                <tr>
+                  <td class="num">{{ rp.numero }}</td>
+                  <td>{{ rp.dataScadenza | date: 'dd/MM/yyyy' }}</td>
+                  <td class="num">{{ rp.rata | number: '1.2-2' }}</td>
+                  <td class="num">{{ rp.quotaCapitale | number: '1.2-2' }}</td>
+                  <td class="num">{{ rp.quotaInteressi | number: '1.2-2' }}</td>
+                  <td class="num">{{ rp.spese | number: '1.2-2' }}</td>
+                  <td class="num">{{ rp.debitoResiduo | number: '1.2-2' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="sotto-tabella">
+          <button type="button" class="btn" (click)="scaricaPiano()">
+            <app-icona nome="scarica" /> Scarica File
+          </button>
+          <app-paginatore [stato]="statoPiano" />
+        </div>
+      }
+    </section>
+  }
+</div>
