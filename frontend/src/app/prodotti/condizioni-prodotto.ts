@@ -13,13 +13,14 @@ import {
   TipoValore,
 } from '../core/models';
 import { Icona } from '../shared/icona';
+import { Importo } from '../shared/importo';
 import { Paginatore } from '../shared/paginatore';
 import { StatoTabella } from '../shared/tabella';
 
 /** Condizioniere del prodotto: elenco delle condizioni economiche e relativo dettaglio. */
 @Component({
   selector: 'app-condizioni-prodotto',
-  imports: [ReactiveFormsModule, DecimalPipe, DecodificaPipe, Icona, Paginatore],
+  imports: [Importo, ReactiveFormsModule, DecimalPipe, DecodificaPipe, Icona, Paginatore],
   templateUrl: './condizioni-prodotto.html',
 })
 export class CondizioniProdotto {

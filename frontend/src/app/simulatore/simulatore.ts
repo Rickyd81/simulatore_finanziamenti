@@ -6,6 +6,7 @@ import { Api, messaggioErrore } from '../core/api';
 import { DecodificaPipe } from '../core/decodifica';
 import { FINALITA_MUTUO, Finalita, Offerta, RataPiano, RisultatoSimulazione } from '../core/models';
 import { Icona } from '../shared/icona';
+import { Importo } from '../shared/importo';
 import { Paginatore } from '../shared/paginatore';
 import { StatoTabella, scaricaCsv } from '../shared/tabella';
 
@@ -14,6 +15,7 @@ type Scheda = 'riepilogo' | 'piano';
 @Component({
   selector: 'app-simulatore',
   imports: [
+    Importo,
     ReactiveFormsModule,
     CurrencyPipe,
     DecimalPipe,

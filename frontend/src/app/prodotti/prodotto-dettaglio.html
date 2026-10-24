@@ -167,11 +167,11 @@
           <div class="sezione-corpo griglia">
             <div class="campo" [class.non-valido]="nonValido('importoMinimo')">
               <label for="impMin">Importo minimo (€) *</label>
-              <input id="impMin" type="number" min="0" formControlName="importoMinimo" />
+              <input appImporto id="impMin" formControlName="importoMinimo" />
             </div>
             <div class="campo" [class.non-valido]="nonValido('importoMassimo')">
               <label for="impMax">Importo massimo (€) *</label>
-              <input id="impMax" type="number" min="0" formControlName="importoMassimo" />
+              <input appImporto id="impMax" formControlName="importoMassimo" />
             </div>
             <div class="campo" [class.non-valido]="nonValido('durataMinimaMesi')">
               <label for="durMin">Durata minima (mesi) *</label>

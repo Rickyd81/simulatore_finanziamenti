@@ -17,7 +17,7 @@
 
       <div class="campo" [class.non-valido]="nonValido('importo')">
         <label for="importo">Importo richiesto (€) *</label>
-        <input id="importo" type="number" min="1000" step="1000" formControlName="importo" />
+        <input appImporto id="importo" formControlName="importo" />
         @if (nonValido('importo')) {
           <span class="errore">Inserisci un importo di almeno 1.000 €</span>
         }
@@ -26,13 +26,7 @@
       @if (mutuo()) {
         <div class="campo" [class.non-valido]="nonValido('valoreImmobile')">
           <label for="valore">Valore dell'immobile (€) *</label>
-          <input
-            id="valore"
-            type="number"
-            min="1000"
-            step="1000"
-            formControlName="valoreImmobile"
-          />
+          <input appImporto id="valore" formControlName="valoreImmobile" />
           @if (nonValido('valoreImmobile')) {
             <span class="errore">Il campo è obbligatorio</span>
           }

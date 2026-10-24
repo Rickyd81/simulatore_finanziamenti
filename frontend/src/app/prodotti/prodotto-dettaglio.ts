@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { Api, messaggioErrore } from '../core/api';
 import { Condizione, Finalita, Prodotto, TipoTasso, TipologiaProdotto } from '../core/models';
 import { CondizioniProdotto } from './condizioni-prodotto';
+import { Importo } from '../shared/importo';
 
 type Scheda = 'generali' | 'requisiti' | 'condizioni';
 
@@ -12,7 +13,7 @@ const oggi = () => new Date().toISOString().slice(0, 10);
 
 @Component({
   selector: 'app-prodotto-dettaglio',
-  imports: [ReactiveFormsModule, CondizioniProdotto],
+  imports: [Importo, ReactiveFormsModule, CondizioniProdotto],
   templateUrl: './prodotto-dettaglio.html',
 })
 export class ProdottoDettaglio {
