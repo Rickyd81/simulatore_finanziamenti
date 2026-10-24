@@ -124,4 +124,42 @@ public class MotoreSimulazioneTests : IDisposable
         Assert.False(MotoreSimulazione.Applicabile(condizione, richiesta, null, Decorrenza));
         Assert.True(MotoreSimulazione.Applicabile(condizione, richiesta, 50, Decorrenza));
     }
+
+    [Fact]
+    public void MutuoPerLiquidita_NonRichiedeIlValoreDellImmobile()
+    {
+        // Prodotto di tipo mutuo con finalità liquidità, come configurato in fabbrica prodotti:
+        // il simulatore per la liquidità non raccoglie il valore dell'immobile.
+        _db.Prodotti.Add(new Prodotto
+        {
+            Codice = "MUT-LIQ",
+            Nome = "Mutuo Liquidità",
+            Tipologia = TipologiaProdotto.Mutuo,
+            TipoTasso = TipoTasso.Fisso,
+            FinalitaAmmesse = [Finalita.Liquidita],
+            ImportoMinimo = 10_000,
+            ImportoMassimo = 300_000,
+            DurataMinimaMesi = 60,
+            DurataMassimaMesi = 240,
+            EtaMassimaFineFinanziamento = 80,
+            LtvMassimo = 50,
+            DataInizioValidita = new DateOnly(2026, 1, 1),
+            Condizioni = [new Condizione { Codice = "TAN1", Categoria = CategoriaCondizione.Tasso, Descrizione = "TAN", TipoValore = TipoValore.Percentuale, Valore = 4.5m, DataInizioValidita = new DateOnly(2026, 1, 1) }]
+        });
+        _db.SaveChanges();
+
+        var risultato = Simula(new RichiestaSimulazione { Finalita = Finalita.Liquidita, Importo = 50_000, DurataMesi = 120, EtaRichiedente = 40 });
+
+        Assert.Contains(risultato.Offerte, o => o.Codice == "MUT-LIQ");
+        Assert.DoesNotContain(risultato.NonDisponibili, n => n.Nome == "Mutuo Liquidità");
+    }
+
+    [Fact]
+    public void MutuoAcquisto_SenzaValoreImmobile_RestaNonDisponibile()
+    {
+        var risultato = Simula(MutuoPrimaCasa() with { ValoreImmobile = null });
+
+        Assert.Empty(risultato.Offerte);
+        Assert.Contains(risultato.NonDisponibili, n => n.Motivi.Contains("Indicare il valore dell'immobile"));
+    }
 }
