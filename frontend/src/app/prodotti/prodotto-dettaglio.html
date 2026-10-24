@@ -1,0 +1,276 @@
+<div class="pagina">
+  <nav class="schede" aria-label="Sezioni del prodotto">
+    <button type="button" [class.attiva]="scheda() === 'generali'" (click)="scheda.set('generali')">
+      <span>Dati Generali</span>
+    </button>
+    <button
+      type="button"
+      [class.attiva]="scheda() === 'requisiti'"
+      (click)="scheda.set('requisiti')"
+    >
+      <span>Requisiti</span>
+    </button>
+    <button
+      type="button"
+      [class.attiva]="scheda() === 'condizioni'"
+      [disabled]="nuovo()"
+      (click)="scheda.set('condizioni')"
+    >
+      <span>Condizioni{{ nuovo() ? ' (dopo il salvataggio)' : '' }}</span>
+    </button>
+  </nav>
+
+  @if (errore(); as e) {
+    <p class="messaggio errore">{{ e }}</p>
+  }
+  @if (conferma(); as c) {
+    <p class="messaggio">{{ c }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="salva()" [hidden]="scheda() === 'condizioni'">
+    @if (scheda() === 'generali') {
+      <div class="sezione">
+        <button
+          type="button"
+          class="sezione-titolo"
+          [class.chiusa]="sezioneChiusa('generali')"
+          (click)="alternaSezione('generali')"
+        >
+          Dati generali
+        </button>
+        @if (!sezioneChiusa('generali')) {
+          <div class="sezione-corpo griglia">
+            <div class="campo" [class.non-valido]="nonValido('codice')">
+              <label for="codice">Codice prodotto *</label>
+              <input id="codice" type="text" formControlName="codice" maxlength="20" />
+              @if (nonValido('codice')) {
+                <span class="errore">Il campo è obbligatorio</span>
+              }
+            </div>
+            <div class="campo" [class.non-valido]="nonValido('nome')">
+              <label for="nome">Nome *</label>
+              <input id="nome" type="text" formControlName="nome" maxlength="100" />
+              @if (nonValido('nome')) {
+                <span class="errore">Il campo è obbligatorio</span>
+              }
+            </div>
+            <div class="campo largo">
+              <label for="descrizione">Descrizione</label>
+              <textarea id="descrizione" formControlName="descrizione" rows="2"></textarea>
+            </div>
+            <div class="campo">
+              <label for="tipologia">Tipologia *</label>
+              <select id="tipologia" formControlName="tipologia">
+                @for (t of tabelle()?.tipologie; track t.codice) {
+                  <option [value]="t.codice">{{ t.descrizione }}</option>
+                }
+              </select>
+            </div>
+            <div class="campo">
+              <label for="tipoTasso">Tipo di tasso *</label>
+              <select id="tipoTasso" formControlName="tipoTasso">
+                @for (t of tabelle()?.tipiTasso; track t.codice) {
+                  <option [value]="t.codice">{{ t.descrizione }}</option>
+                }
+              </select>
+            </div>
+            @if (tipoTasso() === 'Variabile') {
+              <div class="campo">
+                <label for="indice">Indice di riferimento *</label>
+                <select id="indice" formControlName="indiceRiferimento">
+                  <option [ngValue]="null">Seleziona un'opzione</option>
+                  @for (i of indici(); track i.codice) {
+                    <option [value]="i.codice">{{ i.descrizione }} ({{ i.codice }})</option>
+                  }
+                </select>
+                <span class="aiuto"
+                  >Il TAN sarà indice + spread definito nelle condizioni di tasso.</span
+                >
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="sezione">
+        <button
+          type="button"
+          class="sezione-titolo"
+          [class.chiusa]="sezioneChiusa('validita')"
+          (click)="alternaSezione('validita')"
+        >
+          Validità
+        </button>
+        @if (!sezioneChiusa('validita')) {
+          <div class="sezione-corpo griglia">
+            <div class="campo" [class.non-valido]="nonValido('dataInizioValidita')">
+              <label for="inizio">Data inizio validità *</label>
+              <input id="inizio" type="date" formControlName="dataInizioValidita" />
+            </div>
+            <div class="campo">
+              <label for="fine">Data fine validità</label>
+              <input id="fine" type="date" formControlName="dataFineValidita" />
+            </div>
+            <div class="campo">
+              <span class="etichetta">Stato</span>
+              <label class="spunta"
+                ><input type="checkbox" formControlName="attivo" /> Prodotto attivo e proponibile
+                sul portale</label
+              >
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (scheda() === 'requisiti') {
+      <div class="sezione">
+        <button
+          type="button"
+          class="sezione-titolo"
+          [class.chiusa]="sezioneChiusa('finalita')"
+          (click)="alternaSezione('finalita')"
+        >
+          Finalità ammesse
+        </button>
+        @if (!sezioneChiusa('finalita')) {
+          <div class="sezione-corpo campo" [class.non-valido]="nonValido('finalitaAmmesse')">
+            <div class="scelte">
+              @for (f of tabelle()?.finalita; track f.codice) {
+                <label class="spunta">
+                  <input
+                    type="checkbox"
+                    [checked]="finalitaSelezionata(f.codice)"
+                    (change)="alternaFinalita(f.codice, $any($event.target).checked)"
+                  />
+                  {{ f.descrizione }}
+                </label>
+              }
+            </div>
+            @if (nonValido('finalitaAmmesse')) {
+              <span class="errore">Seleziona almeno una finalità</span>
+            }
+          </div>
+        }
+      </div>
+
+      <div class="sezione">
+        <button
+          type="button"
+          class="sezione-titolo"
+          [class.chiusa]="sezioneChiusa('importi')"
+          (click)="alternaSezione('importi')"
+        >
+          Importo e durata
+        </button>
+        @if (!sezioneChiusa('importi')) {
+          <div class="sezione-corpo griglia">
+            <div class="campo" [class.non-valido]="nonValido('importoMinimo')">
+              <label for="impMin">Importo minimo (€) *</label>
+              <input id="impMin" type="number" min="0" formControlName="importoMinimo" />
+            </div>
+            <div class="campo" [class.non-valido]="nonValido('importoMassimo')">
+              <label for="impMax">Importo massimo (€) *</label>
+              <input id="impMax" type="number" min="0" formControlName="importoMassimo" />
+            </div>
+            <div class="campo" [class.non-valido]="nonValido('durataMinimaMesi')">
+              <label for="durMin">Durata minima (mesi) *</label>
+              <input
+                id="durMin"
+                type="number"
+                min="1"
+                max="600"
+                formControlName="durataMinimaMesi"
+              />
+            </div>
+            <div class="campo" [class.non-valido]="nonValido('durataMassimaMesi')">
+              <label for="durMax">Durata massima (mesi) *</label>
+              <input
+                id="durMax"
+                type="number"
+                min="1"
+                max="600"
+                formControlName="durataMassimaMesi"
+              />
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="sezione">
+        <button
+          type="button"
+          class="sezione-titolo"
+          [class.chiusa]="sezioneChiusa('richiedente')"
+          (click)="alternaSezione('richiedente')"
+        >
+          Richiedente e immobile
+        </button>
+        @if (!sezioneChiusa('richiedente')) {
+          <div class="sezione-corpo griglia">
+            <div class="campo" [class.non-valido]="nonValido('etaMinima')">
+              <label for="etaMin">Età minima *</label>
+              <input id="etaMin" type="number" min="18" formControlName="etaMinima" />
+            </div>
+            <div class="campo">
+              <label for="etaMaxRich">Età massima alla richiesta</label>
+              <input
+                id="etaMaxRich"
+                type="number"
+                min="18"
+                formControlName="etaMassimaRichiedente"
+              />
+              <span class="aiuto">Es. 35 per un prodotto riservato agli under 36.</span>
+            </div>
+            <div class="campo">
+              <label for="etaMaxFine">Età massima a fine finanziamento</label>
+              <input
+                id="etaMaxFine"
+                type="number"
+                min="18"
+                formControlName="etaMassimaFineFinanziamento"
+              />
+            </div>
+            @if (tipologia() === 'Mutuo') {
+              <div class="campo" [class.non-valido]="nonValido('ltvMassimo')">
+                <label for="ltv">LTV massimo (%)</label>
+                <input id="ltv" type="number" min="0" max="100" formControlName="ltvMassimo" />
+                <span class="aiuto"
+                  >Percentuale massima finanziabile del valore dell'immobile.</span
+                >
+              </div>
+            }
+            <div class="campo largo">
+              <label for="province">Province ammesse</label>
+              <input
+                id="province"
+                type="text"
+                formControlName="provinceAmmesse"
+                placeholder="Tutte"
+              />
+              <span class="aiuto"
+                >Sigle separate da virgola (es. MI, BG, BS). Lascia vuoto per renderlo disponibile
+                ovunque.</span
+              >
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="azioni-fondo">
+      <button type="submit" class="btn" [disabled]="salvataggio()">
+        {{ nuovo() ? 'Inserisci' : 'Salva' }}
+      </button>
+      <button type="button" class="btn" (click)="annulla()">Annulla</button>
+    </div>
+  </form>
+
+  @if (scheda() === 'condizioni' && !nuovo()) {
+    <app-condizioni-prodotto
+      [prodottoId]="prodottoId()"
+      [tipoTasso]="tipoTasso()"
+      [(condizioni)]="condizioni"
+    />
+  }
+</div>
