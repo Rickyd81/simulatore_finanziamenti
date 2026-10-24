@@ -74,6 +74,28 @@ In sviluppo la specifica OpenAPI è su `/openapi/v1.json`.
 - Un prodotto è proposto se è attivo e in vigore, ammette la finalità e rispetta importo,
   durata, età, provincia e LTV; altrimenti compare tra i non disponibili con il motivo.
 
-## Limiti attuali
+## Area banca e password
 
-L'area banca non ha ancora autenticazione: va protetta prima della pubblicazione sul portale.
+Fabbrica prodotti e indici richiedono una password, impostata nella configurazione
+`AreaBanca:Password` (variabile d'ambiente `AreaBanca__Password`). In sviluppo, se la password
+non è impostata, l'area banca è aperta; in produzione senza password resta chiusa.
+
+## Pubblicazione
+
+Il `Dockerfile` nella radice crea un'unica immagine: compila Angular e lo fa servire dall'API
+ASP.NET Core sulla porta 8080 (o su quella indicata dalla variabile `PORT`). Il database SQLite
+è in `/app/data`.
+
+### Render
+
+1. Accedi a [render.com](https://render.com) con il tuo account GitHub.
+2. Scegli **New → Blueprint** e seleziona il repository `simulatore_finanziamenti`: Render legge
+   `render.yaml` e propone il servizio `simulatore-finanziamenti` (piano gratuito, Francoforte).
+3. Inserisci la password dell'area banca quando Render chiede `AreaBanca__Password`, poi conferma.
+4. Al termine della build l'app è raggiungibile su `https://simulatore-finanziamenti.onrender.com`
+   (o un indirizzo simile). Ogni push su `main` la ripubblica.
+
+Sul piano gratuito il servizio si sospende dopo 15 minuti di inattività (la prima richiesta
+successiva impiega circa un minuto) e il disco non è persistente: a ogni riavvio il catalogo torna
+quello di esempio. Per conservare le modifiche serve un piano a pagamento con un disco montato su
+`/app/data`.

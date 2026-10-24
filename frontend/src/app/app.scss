@@ -72,6 +72,21 @@
     }
   }
 
+  .esci {
+    margin-top: 18px;
+    padding: 6px 0;
+    border: 0;
+    background: none;
+    color: #d5e3ea;
+    font-size: 12px;
+    text-transform: uppercase;
+
+    &:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  }
+
   .menu-gruppo {
     margin: 14px 0 4px;
     font-size: 11px;

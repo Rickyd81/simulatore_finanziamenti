@@ -9,6 +9,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import { filter, map } from 'rxjs';
+import { Accesso } from './core/accesso';
 
 interface VoceMenu {
   percorso: string;
@@ -24,6 +25,7 @@ interface VoceMenu {
 export class App {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  protected readonly accesso = inject(Accesso);
 
   protected readonly portale: VoceMenu[] = [{ percorso: '/simulatore', etichetta: 'Simulatore' }];
   protected readonly banca: VoceMenu[] = [
@@ -43,4 +45,12 @@ export class App {
     ),
     { initialValue: '' },
   );
+
+  constructor() {
+    this.accesso.verifica().subscribe();
+  }
+
+  protected esci(): void {
+    this.accesso.esci().subscribe(() => this.router.navigate(['/simulatore']));
+  }
 }
