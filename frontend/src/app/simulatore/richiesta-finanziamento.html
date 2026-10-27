@@ -1,0 +1,113 @@
+<dialog #dialogo aria-labelledby="titolo-richiesta" (close)="chiuso.emit()">
+  <header>
+    <h2 id="titolo-richiesta">Richiedi il finanziamento</h2>
+    <button type="button" class="btn-icona" title="Chiudi" (click)="chiudi()">✕</button>
+  </header>
+
+  <div class="offerta">
+    <strong>{{ offerta().nome }}</strong>
+    <span
+      >{{ offerta().importo | currency }} in {{ offerta().durataMesi }} mesi · rata
+      {{ offerta().rata | currency }} · TAEG {{ offerta().taeg | number: '1.2-2' }} %</span
+    >
+  </div>
+
+  @if (esito(); as e) {
+    <div class="esito">
+      <div class="spunta-esito" aria-hidden="true">✓</div>
+      <h3>{{ e.messaggio }}</h3>
+      <p>
+        Numero pratica <strong>{{ e.numeroPratica }}</strong>
+      </p>
+      <p class="tenue">
+        Un nostro consulente ti contatterà all'indirizzo {{ form.controls.email.value }} per
+        completare l'istruttoria.
+      </p>
+    </div>
+
+    @if (mostraJson()) {
+      <pre class="json" tabindex="0">{{ json() }}</pre>
+    }
+
+    <footer>
+      <button type="button" class="btn btn-piccolo" (click)="mostraJson.set(!mostraJson())">
+        {{ mostraJson() ? 'Nascondi il JSON' : 'Mostra il JSON inviato' }}
+      </button>
+      @if (mostraJson()) {
+        <button type="button" class="btn btn-piccolo" (click)="copiaJson()">
+          {{ copiato() ? 'Copiato' : 'Copia' }}
+        </button>
+      }
+      <span class="spaziatore"></span>
+      <button type="button" class="btn btn-scuro" (click)="chiudi()">Chiudi</button>
+    </footer>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="invia()">
+      <p class="tenue">
+        Lascia i tuoi riferimenti: inviamo la richiesta alla banca con le condizioni della
+        simulazione.
+      </p>
+
+      <div class="campi">
+        <div class="campo" [class.non-valido]="nonValido('nome')">
+          <label for="rf-nome">Nome *</label>
+          <input id="rf-nome" type="text" formControlName="nome" autocomplete="given-name" />
+          @if (nonValido('nome')) {
+            <span class="errore">Il nome è obbligatorio</span>
+          }
+        </div>
+        <div class="campo" [class.non-valido]="nonValido('cognome')">
+          <label for="rf-cognome">Cognome *</label>
+          <input id="rf-cognome" type="text" formControlName="cognome" autocomplete="family-name" />
+          @if (nonValido('cognome')) {
+            <span class="errore">Il cognome è obbligatorio</span>
+          }
+        </div>
+        <div class="campo" [class.non-valido]="nonValido('codiceFiscale')">
+          <label for="rf-cf">Codice fiscale *</label>
+          <input
+            id="rf-cf"
+            type="text"
+            class="maiuscolo"
+            maxlength="16"
+            formControlName="codiceFiscale"
+          />
+          @if (nonValido('codiceFiscale')) {
+            <span class="errore">Inserisci un codice fiscale valido</span>
+          }
+        </div>
+        <div class="campo" [class.non-valido]="nonValido('email')">
+          <label for="rf-email">Email *</label>
+          <input id="rf-email" type="email" formControlName="email" autocomplete="email" />
+          @if (nonValido('email')) {
+            <span class="errore">Inserisci un indirizzo email valido</span>
+          }
+        </div>
+        <div class="campo" [class.non-valido]="nonValido('telefono')">
+          <label for="rf-telefono">Telefono</label>
+          <input id="rf-telefono" type="tel" formControlName="telefono" autocomplete="tel" />
+          @if (nonValido('telefono')) {
+            <span class="errore">Inserisci un numero di telefono valido</span>
+          }
+        </div>
+      </div>
+
+      <label class="spunta consenso" [class.non-valido]="nonValido('consensoPrivacy')">
+        <input type="checkbox" formControlName="consensoPrivacy" />
+        Acconsento al trattamento dei dati personali per la gestione della richiesta *
+      </label>
+
+      @if (errore(); as msg) {
+        <p class="messaggio errore">{{ msg }}</p>
+      }
+
+      <footer>
+        <span class="spaziatore"></span>
+        <button type="button" class="btn" (click)="chiudi()">Annulla</button>
+        <button type="submit" class="btn btn-scuro" [disabled]="invio()">
+          {{ invio() ? 'Invio in corso…' : 'Invia la richiesta' }}
+        </button>
+      </footer>
+    </form>
+  }
+</dialog>

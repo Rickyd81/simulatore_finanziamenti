@@ -3,8 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
 import {
   Condizione,
+  EsitoRichiestaFinanziamento,
   IndiceRiferimento,
   Prodotto,
+  RichiestaFinanziamento,
   RichiestaSimulazione,
   RisultatoSimulazione,
   Tabelle,
@@ -66,6 +68,15 @@ export class Api {
 
   simula(richiesta: RichiestaSimulazione): Observable<RisultatoSimulazione> {
     return this.http.post<RisultatoSimulazione>(`${this.base}/simulazioni`, richiesta);
+  }
+
+  inviaRichiestaFinanziamento(
+    richiesta: RichiestaFinanziamento,
+  ): Observable<EsitoRichiestaFinanziamento> {
+    return this.http.post<EsitoRichiestaFinanziamento>(
+      `${this.base}/richieste-finanziamento`,
+      richiesta,
+    );
   }
 }
 

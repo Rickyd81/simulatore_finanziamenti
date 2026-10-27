@@ -4,11 +4,19 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Api, messaggioErrore } from '../core/api';
 import { DecodificaPipe } from '../core/decodifica';
-import { FINALITA_MUTUO, Finalita, Offerta, RataPiano, RisultatoSimulazione } from '../core/models';
+import {
+  FINALITA_MUTUO,
+  Finalita,
+  Offerta,
+  RataPiano,
+  RichiestaSimulazione,
+  RisultatoSimulazione,
+} from '../core/models';
 import { Icona } from '../shared/icona';
 import { Importo } from '../shared/importo';
 import { Paginatore } from '../shared/paginatore';
 import { StatoTabella, scaricaCsv } from '../shared/tabella';
+import { RichiestaFinanziamentoDialog } from './richiesta-finanziamento';
 
 type Scheda = 'riepilogo' | 'piano';
 
@@ -23,6 +31,7 @@ type Scheda = 'riepilogo' | 'piano';
     DecodificaPipe,
     Paginatore,
     Icona,
+    RichiestaFinanziamentoDialog,
   ],
   templateUrl: './simulatore.html',
   styleUrl: './simulatore.scss',
@@ -57,6 +66,9 @@ export class Simulatore {
   protected readonly caricamento = signal(false);
   protected readonly errore = signal<string | null>(null);
   protected readonly risultato = signal<RisultatoSimulazione | null>(null);
+  /** Dati della simulazione mostrata: la richiesta di finanziamento parte da questi, non dal form. */
+  protected readonly simulazione = signal<RichiestaSimulazione | null>(null);
+  protected readonly richiestaAperta = signal(false);
   protected readonly selezionata = signal<Offerta | null>(null);
   protected readonly scheda = signal<Scheda>('riepilogo');
   protected readonly mostraEsclusi = signal(false);
@@ -92,27 +104,27 @@ export class Simulatore {
     const v = this.form.getRawValue();
     this.caricamento.set(true);
     this.errore.set(null);
-    this.api
-      .simula({
-        finalita: v.finalita,
-        importo: v.importo,
-        durataMesi: v.durataMesi,
-        valoreImmobile: this.mutuo() ? v.valoreImmobile : null,
-        provincia: v.provincia || null,
-        etaRichiedente: v.etaRichiedente,
-      })
-      .subscribe({
-        next: (r) => {
-          this.risultato.set(r);
-          this.statoOfferte.pagina.set(1);
-          this.apri(r.offerte[0] ?? null);
-          this.caricamento.set(false);
-        },
-        error: (e) => {
-          this.errore.set(messaggioErrore(e));
-          this.caricamento.set(false);
-        },
-      });
+    const richiesta: RichiestaSimulazione = {
+      finalita: v.finalita,
+      importo: v.importo,
+      durataMesi: v.durataMesi,
+      valoreImmobile: this.mutuo() ? v.valoreImmobile : null,
+      provincia: v.provincia || null,
+      etaRichiedente: v.etaRichiedente,
+    };
+    this.api.simula(richiesta).subscribe({
+      next: (r) => {
+        this.risultato.set(r);
+        this.simulazione.set(richiesta);
+        this.statoOfferte.pagina.set(1);
+        this.apri(r.offerte[0] ?? null);
+        this.caricamento.set(false);
+      },
+      error: (e) => {
+        this.errore.set(messaggioErrore(e));
+        this.caricamento.set(false);
+      },
+    });
   }
 
   protected apri(offerta: Offerta | null): void {

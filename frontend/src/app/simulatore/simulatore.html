@@ -286,6 +286,14 @@
           il calcolo ipotizza che l'indice resti invariato per tutta la durata. Le condizioni
           definitive sono riportate nei documenti di trasparenza della banca.
         </p>
+        <div class="richiedi">
+          <span
+            >Ti interessa questa offerta? Invia la richiesta alla banca: ti ricontattiamo noi.</span
+          >
+          <button type="button" class="btn btn-scuro" (click)="richiestaAperta.set(true)">
+            Richiedi il finanziamento
+          </button>
+        </div>
       } @else {
         <div class="tabella-contenitore">
           <table class="lista">
@@ -323,5 +331,13 @@
         </div>
       }
     </section>
+  }
+
+  @if (richiestaAperta() && selezionata() && simulazione()) {
+    <app-richiesta-finanziamento
+      [offerta]="selezionata()!"
+      [simulazione]="simulazione()!"
+      (chiuso)="richiestaAperta.set(false)"
+    />
   }
 </div>
