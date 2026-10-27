@@ -52,3 +52,20 @@ h3 {
   margin-top: 14px;
   font-size: 12.5px;
 }
+
+.richiedi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--bordo);
+  border-left: 3px solid var(--rosso);
+  border-radius: 4px;
+
+  span {
+    flex: 1;
+    min-width: 220px;
+  }
+}

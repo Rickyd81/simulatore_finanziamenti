@@ -1,0 +1,142 @@
+dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  color: var(--testo);
+
+  &::backdrop {
+    background: rgba(31, 42, 48, 0.55);
+  }
+}
+
+header {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--ardesia);
+  color: #fff;
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 400;
+  }
+
+  .btn-icona {
+    color: #fff;
+  }
+}
+
+.offerta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 14px 16px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--teal);
+  background: #eef3f6;
+}
+
+form,
+.esito,
+.json,
+footer {
+  margin: 0 16px;
+}
+
+form > p {
+  margin: 12px 0;
+}
+
+.campi {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.maiuscolo {
+  text-transform: uppercase;
+}
+
+.consenso {
+  margin: 16px 0 4px;
+  align-items: flex-start;
+
+  &.non-valido {
+    color: var(--rosso);
+  }
+
+  input {
+    margin-top: 3px;
+  }
+}
+
+.messaggio {
+  margin: 12px 0 0;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+
+  .spaziatore {
+    flex: 1;
+  }
+}
+
+.btn-piccolo {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  color: var(--testo-tenue);
+}
+
+.esito {
+  padding: 20px 0 4px;
+  text-align: center;
+
+  h3 {
+    margin: 8px 0;
+    color: var(--verde);
+    font-size: 17px;
+  }
+
+  p {
+    margin: 4px 0;
+  }
+}
+
+.spunta-esito {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--verde);
+  color: #fff;
+  font-size: 24px;
+}
+
+.json {
+  max-height: 300px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--riga);
+  border-radius: 4px;
+  background: #f6f8f9;
+  font:
+    12px/1.45 ui-monospace,
+    Consolas,
+    monospace;
+}

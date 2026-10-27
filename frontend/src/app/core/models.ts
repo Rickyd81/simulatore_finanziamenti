@@ -103,6 +103,30 @@ export interface RichiestaSimulazione {
   etaRichiedente: number;
 }
 
+export interface DatiCliente {
+  nome: string;
+  cognome: string;
+  codiceFiscale: string;
+  email: string;
+  telefono: string | null;
+  consensoPrivacy: boolean;
+}
+
+export interface RichiestaFinanziamento {
+  prodottoId: number;
+  simulazione: RichiestaSimulazione;
+  cliente: DatiCliente;
+}
+
+export interface EsitoRichiestaFinanziamento {
+  numeroPratica: string;
+  stato: string;
+  dataRicezione: string;
+  messaggio: string;
+  /** Tracciato standard inviato al core banking (schema PraticaFinanziamento in /openapi/v1.json). */
+  pratica: Record<string, unknown>;
+}
+
 export interface VoceCosto {
   codice: string;
   categoria: CategoriaCondizione;

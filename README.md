@@ -6,7 +6,9 @@ economiche.
 
 - **Portale clienti – Simulatore**: il cliente indica finalità, importo, valore dell'immobile,
   durata, provincia ed età; il simulatore propone i prodotti adatti ordinati per TAEG, con
-  rata, TAN, TAEG, costi e piano di ammortamento scaricabile.
+  rata, TAN, TAEG, costi e piano di ammortamento scaricabile. Dal riepilogo può inviare la
+  **richiesta di finanziamento** alla banca (core banking simulato, vedi
+  [docs/api-core-banking.md](docs/api-core-banking.md)).
 - **Area banca – Fabbrica prodotti**: anagrafica dei prodotti (tipologia, finalità, importi,
   durate, età, LTV, province, validità) con il **condizioniere** per tassi, spese, commissioni,
   assicurazioni e imposte, anche a fasce di importo, durata e LTV.
@@ -53,6 +55,7 @@ cd frontend && npx ng build
 | Metodo | Percorso | Descrizione |
 | --- | --- | --- |
 | POST | `/api/simulazioni` | Simula il finanziamento e restituisce offerte, prodotti esclusi e piani |
+| POST | `/api/richieste-finanziamento` | Invia al core banking la richiesta per l'offerta scelta ([tracciato](docs/api-core-banking.md)) |
 | GET/POST | `/api/prodotti` | Elenco e inserimento prodotti |
 | GET/PUT/DELETE | `/api/prodotti/{id}` | Dettaglio, modifica, eliminazione |
 | GET/POST | `/api/prodotti/{id}/condizioni` | Condizioni del prodotto |
@@ -60,7 +63,7 @@ cd frontend && npx ng build
 | GET/PUT/DELETE | `/api/indici[/{codice}]` | Indici di riferimento |
 | GET | `/api/tabelle` | Decodifiche (finalità, categorie, province…) |
 
-In sviluppo la specifica OpenAPI è su `/openapi/v1.json`.
+La specifica OpenAPI è pubblicata su `/openapi/v1.json`.
 
 ## Regole di calcolo
 

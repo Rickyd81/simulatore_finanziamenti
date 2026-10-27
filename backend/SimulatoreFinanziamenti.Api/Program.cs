@@ -15,10 +15,19 @@ if (Environment.GetEnvironmentVariable("PORT") is { Length: > 0 } porta)
 
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddOpenApi();
+// Il contratto OpenAPI è pubblico (/openapi/v1.json): descrive anche il tracciato standard verso il core banking.
+builder.Services.AddOpenApi(o => o.AddDocumentTransformer((documento, _, _) =>
+{
+    documento.Info.Title = "Simulatore finanziamenti";
+    documento.Info.Description = "API del portale: simulazione, fabbrica prodotti e richiesta di finanziamento verso il core banking.";
+    return Task.CompletedTask;
+}));
 builder.Services.AddDbContext<SimulatoreDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("Simulatore") ?? "Data Source=simulatore.db"));
 builder.Services.AddSingleton<MotoreSimulazione>();
+builder.Services.AddSingleton(TimeProvider.System);
+// Sostituire con l'adattatore del core banking reale quando sarà disponibile.
+builder.Services.AddSingleton<ICoreBanking, CoreBankingSimulato>();
 
 var origini = builder.Configuration.GetSection("Cors:Origini").Get<string[]>() ?? [];
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(origini).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
@@ -69,11 +78,6 @@ using (var scope = app.Services.CreateScope())
     DatiIniziali.Carica(db);
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 app.UseForwardedHeaders();
 // In produzione il front-end Angular compilato è in wwwroot e viene servito dalla stessa applicazione.
 app.UseDefaultFiles();
@@ -83,6 +87,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
+app.MapOpenApi();
 app.MapFallbackToFile("index.html");
 
 app.Run();
