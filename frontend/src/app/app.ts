@@ -30,6 +30,7 @@ export class App {
   protected readonly portale: VoceMenu[] = [{ percorso: '/simulatore', etichetta: 'Simulatore' }];
   protected readonly banca: VoceMenu[] = [
     { percorso: '/prodotti', etichetta: 'Fabbrica prodotti' },
+    { percorso: '/anagrafica-condizioni', etichetta: 'Anagrafica condizioni' },
     { percorso: '/indici', etichetta: 'Indici di riferimento' },
   ];
 

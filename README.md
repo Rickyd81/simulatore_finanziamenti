@@ -11,7 +11,11 @@ economiche.
   [docs/api-core-banking.md](docs/api-core-banking.md)).
 - **Area banca – Fabbrica prodotti**: anagrafica dei prodotti (tipologia, finalità, importi,
   durate, età, LTV, province, validità) con il **condizioniere** per tassi, spese, commissioni,
-  assicurazioni e imposte, anche a fasce di importo, durata e LTV.
+  assicurazioni e imposte, anche a fasce di importo, durata e LTV. Le condizioni si inseriscono a
+  mano o si importano dall'anagrafica condizioni, e restano modificabili sul singolo prodotto.
+- **Area banca – Anagrafica condizioni**: condizioni pre-confezionate, raggruppabili (es. "Costi
+  mutuo"), da importare nei prodotti invece di inserirle ogni volta. Il prodotto ne riceve una
+  copia: modificare o eliminare una condizione in anagrafica non cambia i prodotti già configurati.
 - **Area banca – Indici di riferimento**: valore dell'Euribor e degli altri indici usati dai
   prodotti a tasso variabile.
 

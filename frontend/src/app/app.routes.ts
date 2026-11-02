@@ -27,6 +27,13 @@ export const routes: Routes = [
     loadComponent: () => import('./prodotti/prodotto-dettaglio').then((m) => m.ProdottoDettaglio),
   },
   {
+    path: 'anagrafica-condizioni',
+    canActivate: [areaBancaGuard],
+    data: { titolo: 'Anagrafica condizioni' },
+    loadComponent: () =>
+      import('./anagrafica-condizioni/anagrafica-condizioni').then((m) => m.AnagraficaCondizioni),
+  },
+  {
     path: 'indici',
     canActivate: [areaBancaGuard],
     data: { titolo: 'Indici di riferimento' },

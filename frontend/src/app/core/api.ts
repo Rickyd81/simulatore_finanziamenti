@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, shareReplay } from 'rxjs';
 import {
   Condizione,
+  CondizioneAnagrafica,
   EsitoRichiestaFinanziamento,
   IndiceRiferimento,
   Prodotto,
@@ -49,6 +50,27 @@ export class Api {
     return this.http.delete<void>(
       `${this.base}/prodotti/${condizione.prodottoId}/condizioni/${condizione.id}`,
     );
+  }
+
+  importaCondizioni(prodottoId: number, condizioniAnagrafica: number[]): Observable<Condizione[]> {
+    return this.http.post<Condizione[]>(`${this.base}/prodotti/${prodottoId}/condizioni/importa`, {
+      condizioniAnagrafica,
+    });
+  }
+
+  anagraficaCondizioni(): Observable<CondizioneAnagrafica[]> {
+    return this.http.get<CondizioneAnagrafica[]>(`${this.base}/anagrafica-condizioni`);
+  }
+
+  salvaCondizioneAnagrafica(condizione: CondizioneAnagrafica): Observable<CondizioneAnagrafica> {
+    const url = `${this.base}/anagrafica-condizioni`;
+    return condizione.id
+      ? this.http.put<CondizioneAnagrafica>(`${url}/${condizione.id}`, condizione)
+      : this.http.post<CondizioneAnagrafica>(url, condizione);
+  }
+
+  eliminaCondizioneAnagrafica(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/anagrafica-condizioni/${id}`);
   }
 
   indici(): Observable<IndiceRiferimento[]> {

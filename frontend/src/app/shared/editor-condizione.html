@@ -1,0 +1,234 @@
+<form class="editor" [formGroup]="form" (ngSubmit)="conferma()">
+  @if (nota(); as n) {
+    <p class="messaggio">{{ n }}</p>
+  }
+  <div class="sezione">
+    <button
+      type="button"
+      class="sezione-titolo"
+      [class.chiusa]="sezioneChiusa('generali')"
+      (click)="alternaSezione('generali')"
+    >
+      Dati generali
+    </button>
+    @if (!sezioneChiusa('generali')) {
+      <div class="sezione-corpo griglia">
+        <div class="campo" [class.non-valido]="nonValido('codice')">
+          <label for="cCodice">Codice condizione *</label>
+          <input id="cCodice" type="text" formControlName="codice" maxlength="20" />
+          @if (nonValido('codice')) {
+            <span class="errore">Il campo è obbligatorio</span>
+          }
+        </div>
+        <div class="campo" [class.non-valido]="nonValido('categoria')">
+          <label for="cCategoria">Categoria *</label>
+          <select id="cCategoria" formControlName="categoria">
+            <option [ngValue]="null">Seleziona un opzione</option>
+            @for (t of tabelle()?.categorieCondizione; track t.codice) {
+              <option [ngValue]="t.codice">{{ t.descrizione }}</option>
+            }
+          </select>
+          @if (nonValido('categoria')) {
+            <span class="errore">Il campo è obbligatorio</span>
+          }
+        </div>
+        @if (conGruppo()) {
+          <div class="campo">
+            <label for="cGruppo">Gruppo</label>
+            <input
+              id="cGruppo"
+              type="text"
+              formControlName="gruppo"
+              maxlength="100"
+              list="cGruppi"
+            />
+            <datalist id="cGruppi">
+              @for (g of gruppi(); track g) {
+                <option [value]="g"></option>
+              }
+            </datalist>
+            <span class="aiuto"
+              >Le condizioni dello stesso gruppo si possono importare insieme.</span
+            >
+          </div>
+        }
+        <div class="campo largo" [class.non-valido]="nonValido('descrizione')">
+          <label for="cDescrizione">Descrizione *</label>
+          <textarea id="cDescrizione" formControlName="descrizione" rows="2"></textarea>
+          @if (nonValido('descrizione')) {
+            <span class="errore">Il campo è obbligatorio</span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="sezione">
+    <button
+      type="button"
+      class="sezione-titolo"
+      [class.chiusa]="sezioneChiusa('attributi')"
+      (click)="alternaSezione('attributi')"
+    >
+      Attributi
+    </button>
+    @if (!sezioneChiusa('attributi')) {
+      <div class="sezione-corpo griglia">
+        <div class="campo">
+          <label for="cFinalita">Solo per la finalità</label>
+          <select id="cFinalita" formControlName="finalita">
+            <option [ngValue]="null">Tutte</option>
+            @for (f of tabelle()?.finalita; track f.codice) {
+              <option [ngValue]="f.codice">{{ f.descrizione }}</option>
+            }
+          </select>
+        </div>
+        <div class="campo">
+          <span class="etichetta">Fascia di importo (€)</span>
+          <div class="intervallo">
+            <input
+              appImporto
+              placeholder="da"
+              aria-label="Importo da"
+              formControlName="fasciaImportoDa"
+            />
+            <input
+              appImporto
+              placeholder="a"
+              aria-label="Importo a"
+              formControlName="fasciaImportoA"
+            />
+          </div>
+        </div>
+        <div class="campo">
+          <span class="etichetta">Fascia di durata (mesi)</span>
+          <div class="intervallo">
+            <input
+              type="number"
+              min="1"
+              placeholder="da"
+              aria-label="Durata da"
+              formControlName="fasciaDurataDaMesi"
+            />
+            <input
+              type="number"
+              min="1"
+              placeholder="a"
+              aria-label="Durata a"
+              formControlName="fasciaDurataAMesi"
+            />
+          </div>
+        </div>
+        <div class="campo">
+          <span class="etichetta">Fascia di LTV (%)</span>
+          <div class="intervallo">
+            <input
+              type="number"
+              min="0"
+              max="100"
+              placeholder="da"
+              aria-label="LTV da"
+              formControlName="fasciaLtvDa"
+            />
+            <input
+              type="number"
+              min="0"
+              max="100"
+              placeholder="a"
+              aria-label="LTV a"
+              formControlName="fasciaLtvA"
+            />
+          </div>
+          <span class="aiuto">Le fasce vuote valgono per qualsiasi valore.</span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="sezione">
+    <button
+      type="button"
+      class="sezione-titolo"
+      [class.chiusa]="sezioneChiusa('valori')"
+      (click)="alternaSezione('valori')"
+    >
+      Valori
+    </button>
+    @if (!sezioneChiusa('valori')) {
+      <div class="sezione-corpo griglia">
+        @if (!tasso()) {
+          <div class="campo">
+            <label for="cTipoValore">Tipo valore *</label>
+            <select id="cTipoValore" formControlName="tipoValore">
+              @for (t of tabelle()?.tipiValore; track t.codice) {
+                <option [value]="t.codice">{{ t.descrizione }}</option>
+              }
+            </select>
+          </div>
+        }
+        <div class="campo" [class.non-valido]="nonValido('valore')">
+          <label for="cValore">
+            @if (tasso()) {
+              {{ etichettaTasso() }} *
+            } @else {
+              {{ percentuale() ? "Percentuale sull'importo (%)" : 'Importo (€)' }} *
+            }
+          </label>
+          <input id="cValore" type="number" step="0.01" formControlName="valore" />
+          @if (nonValido('valore')) {
+            <span class="errore">Il campo è obbligatorio</span>
+          }
+        </div>
+        @if (!tasso()) {
+          <div class="campo">
+            <label for="cPeriodicita">Periodicità *</label>
+            <select id="cPeriodicita" formControlName="periodicita">
+              @for (t of tabelle()?.periodicita; track t.codice) {
+                <option [value]="t.codice">{{ t.descrizione }}</option>
+              }
+            </select>
+          </div>
+          @if (percentuale()) {
+            <div class="campo">
+              <span class="etichetta">Minimo / massimo (€)</span>
+              <div class="intervallo">
+                <input
+                  appImporto
+                  placeholder="min"
+                  aria-label="Importo minimo"
+                  formControlName="importoMinimo"
+                />
+                <input
+                  appImporto
+                  placeholder="max"
+                  aria-label="Importo massimo"
+                  formControlName="importoMassimo"
+                />
+              </div>
+            </div>
+          }
+          <div class="campo">
+            <span class="etichetta">TAEG</span>
+            <label class="spunta"
+              ><input type="checkbox" formControlName="inclusaNelTaeg" /> Inclusa nel calcolo del
+              TAEG</label
+            >
+          </div>
+        }
+        <div class="campo" [class.non-valido]="nonValido('dataInizioValidita')">
+          <label for="cInizio">Data inizio validità *</label>
+          <input id="cInizio" type="date" formControlName="dataInizioValidita" />
+        </div>
+        <div class="campo">
+          <label for="cFine">Data fine validità</label>
+          <input id="cFine" type="date" formControlName="dataFineValidita" />
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="azioni-fondo">
+    <button type="submit" class="btn">{{ condizione().id ? 'Aggiorna' : 'Inserisci' }}</button>
+    <button type="button" class="btn" (click)="annulla.emit()">Annulla</button>
+  </div>
+</form>

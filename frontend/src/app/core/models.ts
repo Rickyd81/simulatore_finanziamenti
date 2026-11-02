@@ -64,9 +64,9 @@ export interface Prodotto {
   condizioni: Condizione[];
 }
 
-export interface Condizione {
+/** Dati economici comuni alle condizioni dei prodotti e a quelle dell'anagrafica condizioni. */
+export interface DatiCondizione {
   id: number;
-  prodottoId: number;
   codice: string;
   categoria: CategoriaCondizione;
   descrizione: string;
@@ -85,6 +85,17 @@ export interface Condizione {
   finalita: Finalita | null;
   dataInizioValidita: string;
   dataFineValidita: string | null;
+}
+
+export interface Condizione extends DatiCondizione {
+  prodottoId: number;
+  /** Codice della condizione dell'anagrafica da cui è stata importata, null se inserita a mano. */
+  codiceAnagrafica: string | null;
+}
+
+/** Condizione pre-confezionata dell'anagrafica condizioni. */
+export interface CondizioneAnagrafica extends DatiCondizione {
+  gruppo: string | null;
 }
 
 export interface IndiceRiferimento {

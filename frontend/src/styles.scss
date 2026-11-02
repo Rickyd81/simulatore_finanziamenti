@@ -223,6 +223,16 @@ table.lista {
     background: #eef3f6;
   }
 
+  tr.gruppo td {
+    padding-top: 16px;
+    font-weight: 700;
+    background: #f6f8f9;
+  }
+
+  tr.disabilitata td {
+    color: var(--testo-tenue);
+  }
+
   tr.vuota td {
     color: var(--testo-tenue);
     text-align: center;
@@ -279,6 +289,11 @@ table.lista {
   &.inattivo {
     background: #f1e3e3;
     color: #8a2a2a;
+  }
+
+  &.anagrafica {
+    background: #e2f1f1;
+    color: #1d5e60;
   }
 }
 

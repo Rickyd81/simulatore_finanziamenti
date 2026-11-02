@@ -1,0 +1,124 @@
+<div class="pagina">
+  <div class="pagina-intestazione">
+    <div class="campo">
+      <label for="aCerca">Ricerca condizione</label>
+      <input
+        id="aCerca"
+        type="text"
+        placeholder="Codice o descrizione"
+        [ngModel]="filtro()"
+        (ngModelChange)="filtro.set($event); stato.pagina.set(1)"
+      />
+    </div>
+    <div class="campo">
+      <label for="aGruppo">Gruppo</label>
+      <select
+        id="aGruppo"
+        [ngModel]="filtroGruppo()"
+        (ngModelChange)="filtroGruppo.set($event); stato.pagina.set(1)"
+      >
+        <option [ngValue]="null">Tutti</option>
+        @for (g of gruppi(); track g) {
+          <option [ngValue]="g">{{ g }}</option>
+        }
+      </select>
+    </div>
+    <button type="button" class="btn btn-scuro" (click)="nuova()">Nuova condizione</button>
+    <span class="spaziatore"></span>
+    <div class="cifra">
+      <div class="etichetta">Condizioni in anagrafica</div>
+      <div class="valore">{{ condizioni().length }}</div>
+    </div>
+    <div class="cifra">
+      <div class="etichetta">Gruppi</div>
+      <div class="valore">{{ gruppi().length }}</div>
+    </div>
+  </div>
+
+  @if (errore(); as e) {
+    <p class="messaggio errore">{{ e }}</p>
+  }
+
+  <div class="tabella-contenitore">
+    <table class="lista">
+      <thead>
+        <tr>
+          <th class="ordinabile" (click)="stato.ordina('gruppo')">
+            Gruppo <span class="ordinamento">{{ stato.icona('gruppo') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('codice')">
+            Codice condizione <span class="ordinamento">{{ stato.icona('codice') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('categoria')">
+            Categoria <span class="ordinamento">{{ stato.icona('categoria') }}</span>
+          </th>
+          <th class="ordinabile" (click)="stato.ordina('descrizione')">
+            Descrizione <span class="ordinamento">{{ stato.icona('descrizione') }}</span>
+          </th>
+          <th class="num ordinabile" (click)="stato.ordina('valore')">
+            Valore <span class="ordinamento">{{ stato.icona('valore') }}</span>
+          </th>
+          <th>Periodicità</th>
+          <th>Fasce</th>
+          <th class="azioni"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of stato.visibili(); track c.id) {
+          <tr
+            [class.evidenziata]="c.categoria === 'Tasso'"
+            [class.selezionata]="inModifica()?.id === c.id"
+          >
+            <td>{{ c.gruppo ?? '—' }}</td>
+            <td>{{ c.codice }}</td>
+            <td>{{ c.categoria | decodifica: 'categorieCondizione' }}</td>
+            <td>
+              {{ c.descrizione }}
+              @if (c.finalita) {
+                <span class="badge">{{ c.finalita | decodifica: 'finalita' }}</span>
+              }
+            </td>
+            <td class="num">
+              @if (c.tipoValore === 'Percentuale') {
+                {{ c.valore | number: '1.2-4' }} %
+              } @else {
+                {{ c.valore | number: '1.2-2' }} €
+              }
+            </td>
+            <td>{{ c.periodicita | decodifica: 'periodicita' }}</td>
+            <td>{{ fasce(c) }}</td>
+            <td class="azioni">
+              <button type="button" class="btn-icona" title="Modifica" (click)="apri(c)">
+                <app-icona nome="modifica" />
+              </button>
+              <button type="button" class="btn-icona elimina" title="Elimina" (click)="elimina(c)">
+                <app-icona nome="elimina" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr class="vuota">
+            <td colspan="8">Nessuna condizione in anagrafica</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="sotto-tabella">
+    <span class="tenue">
+      Le condizioni si importano nei prodotti dalla scheda Condizioni della fabbrica prodotti. I
+      prodotti ne ricevono una copia: modificarle qui non cambia i prodotti già configurati.
+    </span>
+    <app-paginatore [stato]="stato" />
+  </div>
+
+  @if (inModifica(); as m) {
+    <app-editor-condizione
+      [condizione]="m"
+      [conGruppo]="true"
+      [gruppi]="gruppi()"
+      (salva)="salva($event)"
+      (annulla)="inModifica.set(null)"
+    />
+  }
+</div>

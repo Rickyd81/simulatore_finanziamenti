@@ -79,10 +79,49 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
         if (!await db.Prodotti.AnyAsync(p => p.Id == id)) return NotFound();
         condizione.Id = 0;
         condizione.ProdottoId = id;
+        condizione.CodiceAnagrafica = null;
         if (!await Valida(condizione)) return ValidationProblem(ModelState);
         db.Condizioni.Add(condizione);
         await db.SaveChangesAsync();
         return CreatedAtAction(nameof(Condizione), new { id, condizioneId = condizione.Id }, condizione);
+    }
+
+    /// <summary>
+    /// Importa nel prodotto una copia delle condizioni indicate dell'anagrafica condizioni.
+    /// Le condizioni importate si possono poi modificare come quelle inserite a mano.
+    /// </summary>
+    [HttpPost("{id:int}/condizioni/importa")]
+    public async Task<ActionResult<List<Condizione>>> ImportaCondizioni(int id, ImportazioneCondizioni richiesta)
+    {
+        if (!await db.Prodotti.AnyAsync(p => p.Id == id)) return NotFound();
+        var ids = richiesta.CondizioniAnagrafica.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            ModelState.AddModelError(nameof(richiesta.CondizioniAnagrafica), "Selezionare almeno una condizione dell'anagrafica");
+            return ValidationProblem(ModelState);
+        }
+
+        var modelli = await db.CondizioniAnagrafica.AsNoTracking().Where(a => ids.Contains(a.Id)).ToListAsync();
+        if (modelli.Count != ids.Count)
+        {
+            ModelState.AddModelError(nameof(richiesta.CondizioniAnagrafica), "Alcune condizioni selezionate non sono più presenti nell'anagrafica");
+            return ValidationProblem(ModelState);
+        }
+
+        var codici = modelli.Select(a => a.Codice).ToList();
+        var giaPresenti = await db.Condizioni.Where(c => c.ProdottoId == id && codici.Contains(c.Codice))
+            .OrderBy(c => c.Codice).Select(c => c.Codice).ToListAsync();
+        if (giaPresenti.Count > 0)
+        {
+            ModelState.AddModelError(nameof(richiesta.CondizioniAnagrafica),
+                $"Il prodotto ha già condizioni con codice {string.Join(", ", giaPresenti)}: modificale o eliminale prima di importarle");
+            return ValidationProblem(ModelState);
+        }
+
+        var importate = modelli.Select(a => Domain.Condizione.DaAnagrafica(a, id)).OrderBy(c => c.Categoria).ThenBy(c => c.Codice).ToList();
+        db.Condizioni.AddRange(importate);
+        await db.SaveChangesAsync();
+        return importate;
     }
 
     [HttpPut("{id:int}/condizioni/{condizioneId:int}")]
@@ -92,6 +131,8 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
         if (condizione is null) return NotFound();
         dati.Id = condizioneId;
         dati.ProdottoId = id;
+        // L'origine dall'anagrafica resta quella dell'importazione anche se la condizione viene modificata.
+        dati.CodiceAnagrafica = condizione.CodiceAnagrafica;
         if (!await Valida(dati)) return ValidationProblem(ModelState);
         db.Entry(condizione).CurrentValues.SetValues(dati);
         await db.SaveChangesAsync();
@@ -129,19 +170,13 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
 
     private async Task<bool> Valida(Condizione c)
     {
-        c.Codice = c.Codice.Trim().ToUpperInvariant();
+        RegoleCondizione.Normalizza(c);
         if (await db.Condizioni.AnyAsync(x => x.ProdottoId == c.ProdottoId && x.Codice == c.Codice && x.Id != c.Id))
             ModelState.AddModelError(nameof(c.Codice), "Esiste già una condizione con questo codice per il prodotto");
-        if (c.Categoria == CategoriaCondizione.Tasso && c.TipoValore != TipoValore.Percentuale)
-            ModelState.AddModelError(nameof(c.TipoValore), "Un tasso deve essere espresso in percentuale");
-        if (c.FasciaImportoDa > c.FasciaImportoA)
-            ModelState.AddModelError(nameof(c.FasciaImportoA), "Fascia di importo non valida");
-        if (c.FasciaDurataDaMesi > c.FasciaDurataAMesi)
-            ModelState.AddModelError(nameof(c.FasciaDurataAMesi), "Fascia di durata non valida");
-        if (c.FasciaLtvDa > c.FasciaLtvA)
-            ModelState.AddModelError(nameof(c.FasciaLtvA), "Fascia di LTV non valida");
-        if (c.DataFineValidita < c.DataInizioValidita)
-            ModelState.AddModelError(nameof(c.DataFineValidita), "La data di fine validità precede quella di inizio");
+        RegoleCondizione.Verifica(c, ModelState);
         return ModelState.IsValid;
     }
 }
+
+/// <summary>Condizioni dell'anagrafica (per id) da importare in un prodotto.</summary>
+public record ImportazioneCondizioni(List<int> CondizioniAnagrafica);

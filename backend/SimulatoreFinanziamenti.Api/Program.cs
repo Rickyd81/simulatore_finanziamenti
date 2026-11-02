@@ -74,8 +74,10 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SimulatoreDbContext>();
-    db.Database.EnsureCreated();
-    DatiIniziali.Carica(db);
+    var databaseNuovo = db.Database.EnsureCreated();
+    // EnsureCreated non tocca un database già esistente: le tabelle e colonne aggiunte nelle versioni successive si creano qui.
+    var tabelleNuove = AggiornamentoSchema.Applica(db);
+    DatiIniziali.Carica(db, caricaAnagrafica: databaseNuovo || tabelleNuove.Contains(nameof(SimulatoreDbContext.CondizioniAnagrafica)));
 }
 
 app.UseForwardedHeaders();

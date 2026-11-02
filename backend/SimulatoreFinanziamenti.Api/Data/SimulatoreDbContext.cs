@@ -8,6 +8,7 @@ public class SimulatoreDbContext(DbContextOptions<SimulatoreDbContext> options) 
 {
     public DbSet<Prodotto> Prodotti => Set<Prodotto>();
     public DbSet<Condizione> Condizioni => Set<Condizione>();
+    public DbSet<CondizioneAnagrafica> CondizioniAnagrafica => Set<CondizioneAnagrafica>();
     public DbSet<IndiceRiferimento> Indici => Set<IndiceRiferimento>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
@@ -34,6 +35,7 @@ public class SimulatoreDbContext(DbContextOptions<SimulatoreDbContext> options) 
         });
 
         modelBuilder.Entity<Condizione>().HasIndex(c => new { c.ProdottoId, c.Codice }).IsUnique();
+        modelBuilder.Entity<CondizioneAnagrafica>().HasIndex(c => c.Codice).IsUnique();
     }
 
     private static ValueComparer<List<T>> ListComparer<T>() => new(
