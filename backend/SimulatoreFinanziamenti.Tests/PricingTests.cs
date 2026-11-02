@@ -39,19 +39,14 @@ public class PricingTests : IDisposable
 
     private static JsonElement PerCodice(List<JsonElement> elenco, string codice) =>
         elenco.Single(p => p.GetProperty("codice").GetString() == codice);
-
-    private static Task<HttpResponseMessage> NuovoProdottoVariabile(HttpClient client, string? pricing, decimal? spread = null) =>
-        NuovoProdotto(client, "Variabile", pricing, spread);
-
-    private static Task<HttpResponseMessage> NuovoProdotto(HttpClient client, string tipoTasso, string? pricing, decimal? spread = null) =>
-        client.PostAsJsonAsync("/api/prodotti", new
+    private static async Task<int> NuovoProdotto(HttpClient client, string tipoTasso)
+    {
+        var risposta = await client.PostAsJsonAsync("/api/prodotti", new
         {
-            codice = tipoTasso == "Variabile" ? "VAR-TEST" : "FIX-TEST",
+            codice = "TEST",
             nome = "Mutuo di prova",
             tipologia = "Mutuo",
             tipoTasso,
-            codicePricing = pricing,
-            spread,
             finalitaAmmesse = new[] { "Liquidita" },
             importoMinimo = 10_000,
             importoMassimo = 200_000,
@@ -62,6 +57,39 @@ public class PricingTests : IDisposable
             attivo = true,
             dataInizioValidita = "2026-01-01"
         });
+        Assert.Equal(HttpStatusCode.Created, risposta.StatusCode);
+        return (await risposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+    }
+
+    private static Task<HttpResponseMessage> NuovaCondizioneTasso(HttpClient client, int prodotto, string? pricing, decimal spread, decimal? tasso = null) =>
+        client.PostAsJsonAsync($"/api/prodotti/{prodotto}/condizioni", new
+        {
+            codice = "TAN1",
+            categoria = "Tasso",
+            descrizione = "TAN",
+            tipoValore = "Percentuale",
+            codicePricing = pricing,
+            tassoRiferimento = tasso,
+            valore = spread,
+            periodicita = "Annuale",
+            dataInizioValidita = "2026-01-01"
+        });
+
+    private static async Task<JsonElement> Offerta(HttpClient client, string codice = "TEST", string finalita = "Liquidita", int importo = 100_000)
+    {
+        var risultato = await (await client.PostAsJsonAsync("/api/simulazioni", new
+        {
+            finalita,
+            importo,
+            valoreImmobile = finalita == "AcquistoPrimaCasa" ? 300_000 : (int?)null,
+            durataMesi = 300,
+            etaRichiedente = 40,
+            provincia = "RM",
+            dataDecorrenza = "2026-11-01"
+        })).Content.ReadFromJsonAsync<JsonElement>();
+        return risultato.GetProperty("offerte").EnumerateArray().Single(o => o.GetProperty("codice").GetString() == codice);
+    }
+
 
     [Fact]
     public async Task Elenco_ContienePiuPricingDiEsempioConSpread()
@@ -92,47 +120,97 @@ public class PricingTests : IDisposable
         var senza = await client.PutAsJsonAsync("/api/pricing/IRS15", new { codice = "IRS15", descrizione = "IRS 15 anni", valore = 2.4, spread = 1.3, dataRilevazione = "2026-10-01" });
         Assert.Equal(HttpStatusCode.BadRequest, senza.StatusCode);
 
-        // Un pricing già usato da prodotti non può cambiare tipo di tasso.
+        // Un pricing già richiamato da condizioni di prodotti non può cambiare tipo di tasso.
         var cambio = await client.PutAsJsonAsync("/api/pricing/EUR3M", new { codice = "EUR3M", descrizione = "Euribor 3 mesi", tipoTasso = "Fisso", valore = 2.05, spread = 1.2, dataRilevazione = "2026-10-01" });
         Assert.Equal(HttpStatusCode.BadRequest, cambio.StatusCode);
     }
 
     [Fact]
-    public async Task ProdottoFisso_RichiamaUnPricingFissoENeImportaLoSpread()
+    public async Task Prodotto_HaSoloIlTipoDiTassoSenzaPricing()
     {
         var client = await ClientBanca();
+        var id = await NuovoProdotto(client, "Variabile");
 
-        var risposta = await NuovoProdotto(client, "Fisso", "IRS10");
+        var prodotto = await client.GetFromJsonAsync<JsonElement>($"/api/prodotti/{id}");
+        Assert.False(prodotto.TryGetProperty("codicePricing", out _));
+        Assert.False(prodotto.TryGetProperty("spread", out _));
+    }
+
+    [Fact]
+    public async Task CondizioneTasso_RichiamandoIlPricingNeImportaIlTasso()
+    {
+        var client = await ClientBanca();
+        var prodotto = await NuovoProdotto(client, "Fisso");
+
+        var risposta = await NuovaCondizioneTasso(client, prodotto, "irs10", spread: 0.90m);
+
         Assert.Equal(HttpStatusCode.Created, risposta.StatusCode);
-        Assert.Equal(0.90m, (await risposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("spread").GetDecimal());
+        var condizione = await risposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("IRS10", condizione.GetProperty("codicePricing").GetString());
+        Assert.Equal(2.30m, condizione.GetProperty("tassoRiferimento").GetDecimal());
+        Assert.Equal(3.20m, condizione.GetProperty("tan").GetDecimal());
 
-        var risultato = await (await client.PostAsJsonAsync("/api/simulazioni", new
-        {
-            finalita = "Liquidita",
-            importo = 100_000,
-            durataMesi = 120,
-            etaRichiedente = 40,
-            dataDecorrenza = "2026-11-01"
-        })).Content.ReadFromJsonAsync<JsonElement>();
-        var offerta = risultato.GetProperty("offerte").EnumerateArray().Single(o => o.GetProperty("codice").GetString() == "FIX-TEST");
+        // Tasso e spread sono una copia: aggiornare il pricing non cambia la condizione.
+        await client.PutAsJsonAsync("/api/pricing/IRS10", new { codice = "IRS10", descrizione = "IRS 10 anni", tipoTasso = "Fisso", valore = 3.0, spread = 0.9, dataRilevazione = "2026-11-01" });
+        var offerta = await Offerta(client);
         Assert.Equal("IRS10", offerta.GetProperty("indiceRiferimento").GetString());
-        Assert.Equal(2.30m + 0.90m, offerta.GetProperty("tan").GetDecimal());
+        Assert.Equal(2.30m, offerta.GetProperty("valoreIndice").GetDecimal());
+        Assert.Equal(0.90m, offerta.GetProperty("spread").GetDecimal());
+        Assert.Equal(3.20m, offerta.GetProperty("tan").GetDecimal());
     }
 
     [Fact]
-    public async Task Prodotto_RichiedeIlPricingAncheATassoFisso()
-    {
-        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdotto(await ClientBanca(), "Fisso", null)).StatusCode);
-    }
-
-    [Fact]
-    public async Task Prodotto_NonAccettaUnPricingDiAltroTipoDiTasso()
+    public async Task CondizioneTasso_TassoESpreadSonoModificabili()
     {
         var client = await ClientBanca();
+        var prodotto = await NuovoProdotto(client, "Variabile");
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdotto(client, "Fisso", "EUR3M")).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdotto(client, "Variabile", "IRS20")).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await NuovaCondizioneTasso(client, prodotto, "EUR1M", spread: 1.0m, tasso: 2.10m)).StatusCode);
+
+        Assert.Equal(3.10m, (await Offerta(client)).GetProperty("tan").GetDecimal());
     }
+
+    [Fact]
+    public async Task CondizioneTasso_RichiedeUnPricingEsistenteDelTipoDiTassoDelProdotto()
+    {
+        var client = await ClientBanca();
+        var fisso = await NuovoProdotto(client, "Fisso");
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await NuovaCondizioneTasso(client, fisso, null, 1m)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await NuovaCondizioneTasso(client, fisso, "INESISTENTE", 1m)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await NuovaCondizioneTasso(client, fisso, "EUR3M", 1m)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Importazione_RifiutaTassiConPricingDiAltroTipo()
+    {
+        var client = await ClientBanca();
+        var variabile = await NuovoProdotto(client, "Variabile");
+        var anagrafica = (await client.GetFromJsonAsync<JsonElement>("/api/anagrafica-condizioni")).EnumerateArray();
+        var tassoFisso = anagrafica.First(c => c.GetProperty("codice").GetString() == "MF-TAN1").GetProperty("id").GetInt32();
+
+        var risposta = await client.PostAsJsonAsync($"/api/prodotti/{variabile}/condizioni/importa", new { condizioniAnagrafica = new[] { tassoFisso } });
+
+        Assert.Equal(HttpStatusCode.BadRequest, risposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task CondizioneNonDiTasso_NonHaPricing()
+    {
+        var client = await ClientBanca();
+        var prodotto = await NuovoProdotto(client, "Fisso");
+
+        var risposta = await client.PostAsJsonAsync($"/api/prodotti/{prodotto}/condizioni", new
+        {
+            codice = "BOL", categoria = "ImpostaBollo", descrizione = "Bollo", tipoValore = "Importo", valore = 16,
+            codicePricing = "IRS10", tassoRiferimento = 2.3, periodicita = "UnaTantum", dataInizioValidita = "2026-01-01"
+        });
+
+        var condizione = await risposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(JsonValueKind.Null, condizione.GetProperty("codicePricing").ValueKind);
+        Assert.Equal(JsonValueKind.Null, condizione.GetProperty("tan").ValueKind);
+    }
+
 
     [Fact]
     public async Task Salva_RichiedeLoSpread()
@@ -147,82 +225,33 @@ public class PricingTests : IDisposable
         Assert.Equal(1.3m, PerCodice(await Pricing(client), "IRS15").GetProperty("spread").GetDecimal());
     }
 
-    [Fact]
-    public async Task Prodotto_RichiamandoIlPricingNeImportaLoSpread()
-    {
-        var client = await ClientBanca();
-
-        var risposta = await NuovoProdottoVariabile(client, "eur6m");
-
-        Assert.Equal(HttpStatusCode.Created, risposta.StatusCode);
-        var prodotto = await risposta.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("EUR6M", prodotto.GetProperty("codicePricing").GetString());
-        Assert.Equal(1.10m, prodotto.GetProperty("spread").GetDecimal());
-
-        // Lo spread importato è una copia: cambiare il pricing non tocca il prodotto.
-        await client.PutAsJsonAsync("/api/pricing/EUR6M", new { codice = "EUR6M", descrizione = "Euribor 6 mesi", tipoTasso = "Variabile", valore = 2.12, spread = 2.0, dataRilevazione = "2026-10-01" });
-        var salvato = await client.GetFromJsonAsync<JsonElement>($"/api/prodotti/{prodotto.GetProperty("id").GetInt32()}");
-        Assert.Equal(1.10m, salvato.GetProperty("spread").GetDecimal());
-    }
 
     [Fact]
-    public async Task Prodotto_SpreadModificatoSulProdottoVieneMantenuto()
+    public async Task DatabaseEsistente_PricingPassaAlleCondizioniSenzaCambiareITan()
     {
-        var client = await ClientBanca();
-
-        var prodotto = await (await NuovoProdottoVariabile(client, "EUR6M", spread: 0.75m)).Content.ReadFromJsonAsync<JsonElement>();
-
-        Assert.Equal(0.75m, prodotto.GetProperty("spread").GetDecimal());
-    }
-
-    [Fact]
-    public async Task Prodotto_RichiedeUnPricingEsistente()
-    {
-        var client = await ClientBanca();
-
-        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdottoVariabile(client, null)).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdottoVariabile(client, "INESISTENTE")).StatusCode);
-    }
-
-    [Fact]
-    public async Task Simulazione_UsaLoSpreadImportatoSenzaCondizioniDiTasso()
-    {
-        var client = await ClientBanca();
-        Assert.Equal(HttpStatusCode.Created, (await NuovoProdottoVariabile(client, "EUR1M")).StatusCode);
-
-        var risultato = await (await client.PostAsJsonAsync("/api/simulazioni", new
-        {
-            finalita = "Liquidita",
-            importo = 100_000,
-            durataMesi = 120,
-            etaRichiedente = 40,
-            dataDecorrenza = "2026-11-01"
-        })).Content.ReadFromJsonAsync<JsonElement>();
-
-        var offerta = risultato.GetProperty("offerte").EnumerateArray().Single(o => o.GetProperty("codice").GetString() == "VAR-TEST");
-        Assert.Equal("EUR1M", offerta.GetProperty("indiceRiferimento").GetString());
-        Assert.Equal(1.40m, offerta.GetProperty("spread").GetDecimal());
-        Assert.Equal(1.95m + 1.40m, offerta.GetProperty("tan").GetDecimal());
-    }
-
-    [Fact]
-    public async Task DatabaseEsistente_IndiciDiventanoPricingSenzaPerdereDati()
-    {
-        // Database di una versione precedente: indici di riferimento senza spread, un indice personalizzato.
-        await _factory.CreateClient().GetAsync("/api/tabelle");
+        // Database delle versioni precedenti: indici senza spread né tipo, pricing e spread sul prodotto,
+        // condizioni di tasso senza pricing (spread per il variabile, TAN per il fisso).
+        var client0 = await ClientBanca();
+        var tanFisso = (await Offerta(client0, "MUT-FIX", "AcquistoPrimaCasa", 200_000)).GetProperty("tan").GetDecimal();
         _factory.Dispose();
         using (var connessione = new SqliteConnection($"Data Source={_database};Pooling=False"))
         {
             connessione.Open();
             using var comando = connessione.CreateCommand();
             comando.CommandText = """
-                DELETE FROM Indici WHERE Codice <> 'EUR3M';
+                DELETE FROM Indici WHERE Codice NOT IN ('EUR3M', 'TBP');
                 INSERT INTO Indici (Codice, Descrizione, Valore, DataRilevazione) VALUES ('MIO', 'Indice personalizzato', '3.1', '2026-09-01');
                 UPDATE Indici SET Valore = '2.50' WHERE Codice = 'EUR3M';
                 ALTER TABLE Indici DROP COLUMN Spread;
                 ALTER TABLE Indici DROP COLUMN TipoTasso;
-                ALTER TABLE Prodotti DROP COLUMN Spread;
-                UPDATE Prodotti SET IndiceRiferimento = NULL WHERE TipoTasso = 'Fisso';
+                UPDATE Condizioni SET Valore = '3.4' WHERE Codice = 'TAN4' AND ProdottoId = (SELECT Id FROM Prodotti WHERE Codice = 'MUT-FIX');
+                UPDATE Prodotti SET IndiceRiferimento = 'EUR3M' WHERE Codice = 'MUT-VAR';
+                DELETE FROM Condizioni WHERE Categoria = 'Tasso' AND ProdottoId = (SELECT Id FROM Prodotti WHERE Codice = 'PRE-AUTO');
+                UPDATE Prodotti SET IndiceRiferimento = 'TBP', Spread = '2.40' WHERE Codice = 'PRE-AUTO';
+                ALTER TABLE Condizioni DROP COLUMN CodicePricing;
+                ALTER TABLE Condizioni DROP COLUMN TassoRiferimento;
+                ALTER TABLE CondizioniAnagrafica DROP COLUMN CodicePricing;
+                ALTER TABLE CondizioniAnagrafica DROP COLUMN TassoRiferimento;
                 """;
             comando.ExecuteNonQuery();
         }
@@ -230,25 +259,29 @@ public class PricingTests : IDisposable
         _factory = Crea();
         var client = await ClientBanca();
 
+        // Anagrafica pricing: valori conservati, indici precedenti variabili, esempi mancanti aggiunti.
         var elenco = await Pricing(client);
-        var eur3m = PerCodice(elenco, "EUR3M");
-        Assert.Equal(2.50m, eur3m.GetProperty("valore").GetDecimal()); // il valore rilevato resta quello salvato
-        Assert.Equal(1.20m, eur3m.GetProperty("spread").GetDecimal());
-        Assert.Equal(3.1m, PerCodice(elenco, "MIO").GetProperty("valore").GetDecimal());
-        Assert.Equal(JsonValueKind.Null, PerCodice(elenco, "MIO").GetProperty("spread").ValueKind);
-        Assert.Contains(elenco, p => p.GetProperty("codice").GetString() == "EUR6M");
-        // Gli indici delle versioni precedenti diventano pricing variabili; arrivano anche i fissi di esempio.
+        Assert.Equal(2.50m, PerCodice(elenco, "EUR3M").GetProperty("valore").GetDecimal());
+        Assert.Equal(1.20m, PerCodice(elenco, "EUR3M").GetProperty("spread").GetDecimal());
         Assert.Equal("Variabile", PerCodice(elenco, "MIO").GetProperty("tipoTasso").GetString());
         Assert.Equal("Fisso", PerCodice(elenco, "IRS20").GetProperty("tipoTasso").GetString());
 
-        var prodotti = (await client.GetFromJsonAsync<JsonElement>("/api/prodotti")).EnumerateArray().ToList();
-        var variabile = prodotti.Single(p => p.GetProperty("codice").GetString() == "MUT-VAR");
-        Assert.Equal("EUR3M", variabile.GetProperty("codicePricing").GetString());
-
-        // I prodotti fissi senza pricing ricevono il pricing a zero: il TAN resta quello delle condizioni.
-        var fisso = prodotti.Single(p => p.GetProperty("codice").GetString() == "MUT-FIX");
-        Assert.Equal("TF-PREC", fisso.GetProperty("codicePricing").GetString());
-        Assert.Equal(0m, fisso.GetProperty("spread").GetDecimal());
-        Assert.Equal("Fisso", PerCodice(await Pricing(client), "TF-PREC").GetProperty("tipoTasso").GetString());
+        // Variabile: le condizioni ricevono il pricing del prodotto con il valore di oggi dell'indice.
+        var variabile = await Offerta(client, "MUT-VAR", "AcquistoPrimaCasa", 200_000);
+        Assert.Equal("EUR3M", variabile.GetProperty("indiceRiferimento").GetString());
+        Assert.Equal(2.50m + 1.20m, variabile.GetProperty("tan").GetDecimal());
+        // Fisso senza pricing: pricing TF-PREC a zero, il TAN resta quello della condizione.
+        var fisso = await Offerta(client, "MUT-FIX", "AcquistoPrimaCasa", 200_000);
+        Assert.Equal("TF-PREC", fisso.GetProperty("indiceRiferimento").GetString());
+        Assert.Equal(tanFisso, fisso.GetProperty("tan").GetDecimal());
+        // Spread sul prodotto senza condizioni di tasso: diventa una condizione di tasso.
+        var condizioniAuto = (await client.GetFromJsonAsync<JsonElement>($"/api/prodotti/{(await client.GetFromJsonAsync<JsonElement>("/api/prodotti")).EnumerateArray().Single(p => p.GetProperty("codice").GetString() == "PRE-AUTO").GetProperty("id").GetInt32()}/condizioni")).EnumerateArray();
+        var tassoAuto = condizioniAuto.Single(c => c.GetProperty("categoria").GetString() == "Tasso");
+        Assert.Equal("TBP", tassoAuto.GetProperty("codicePricing").GetString());
+        Assert.Equal(5.90m, tassoAuto.GetProperty("tan").GetDecimal());
+        // Le condizioni di tasso dell'anagrafica senza pricing ricevono TF-PREC.
+        var anagrafica = (await client.GetFromJsonAsync<JsonElement>("/api/anagrafica-condizioni")).EnumerateArray();
+        Assert.All(anagrafica.Where(c => c.GetProperty("categoria").GetString() == "Tasso"),
+            c => Assert.Equal("TF-PREC", c.GetProperty("codicePricing").GetString()));
     }
 }

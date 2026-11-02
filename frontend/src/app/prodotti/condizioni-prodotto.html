@@ -60,7 +60,13 @@
             }
           </td>
           <td class="num">
-            @if (c.tipoValore === 'Percentuale') {
+            @if (c.categoria === 'Tasso') {
+              {{ (c.tassoRiferimento ?? 0) + c.valore | number: '1.2-4' }} %
+              <span class="tenue"
+                >{{ c.codicePricing }} {{ c.tassoRiferimento | number: '1.2-4' }} +
+                {{ c.valore | number: '1.2-4' }}</span
+              >
+            } @else if (c.tipoValore === 'Percentuale') {
               {{ c.valore | number: '1.2-4' }} %
             } @else {
               {{ c.valore | number: '1.2-2' }} €
@@ -90,12 +96,8 @@
 </div>
 <div class="sotto-tabella">
   <span class="tenue">
-    @if (conPricing()) {
-      Il valore delle condizioni di tasso è lo spread sul tasso di riferimento del pricing e, dove
-      applicabile, sostituisce lo spread importato dal pricing.
-    } @else {
-      Se più condizioni di tasso sono applicabili, vale la prima in ordine di codice.
-    }
+    Il TAN è il tasso di riferimento del pricing più lo spread della condizione di tasso; se più
+    condizioni di tasso sono applicabili, vale la prima in ordine di codice.
   </span>
   <app-paginatore [stato]="stato" />
 </div>
@@ -103,7 +105,7 @@
 @if (importazione()) {
   <app-importa-condizioni
     [codiciPresenti]="codici()"
-    [conPricing]="conPricing()"
+    [tipoTasso]="tipoTasso()"
     (importa)="importa($event)"
     (annulla)="importazione.set(false)"
   />
@@ -112,7 +114,7 @@
 @if (inModifica(); as m) {
   <app-editor-condizione
     [condizione]="m"
-    [conPricing]="conPricing()"
+    [tipoTasso]="tipoTasso()"
     [nota]="nota(m)"
     (salva)="salva($event)"
     (annulla)="chiudi()"

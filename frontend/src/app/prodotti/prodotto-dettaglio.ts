@@ -1,4 +1,3 @@
-import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -14,7 +13,7 @@ const oggi = () => new Date().toISOString().slice(0, 10);
 
 @Component({
   selector: 'app-prodotto-dettaglio',
-  imports: [DecimalPipe, Importo, ReactiveFormsModule, CondizioniProdotto],
+  imports: [Importo, ReactiveFormsModule, CondizioniProdotto],
   templateUrl: './prodotto-dettaglio.html',
 })
 export class ProdottoDettaglio {
@@ -26,7 +25,6 @@ export class ProdottoDettaglio {
   readonly id = input<string>();
 
   protected readonly tabelle = toSignal(this.api.tabelle$);
-  protected readonly pricing = toSignal(this.api.pricing(), { initialValue: [] });
   protected readonly scheda = signal<Scheda>('generali');
   protected readonly chiuse = signal<Set<string>>(new Set());
   protected readonly errore = signal<string | null>(null);
@@ -42,8 +40,6 @@ export class ProdottoDettaglio {
     descrizione: [''],
     tipologia: ['Mutuo' as TipologiaProdotto, Validators.required],
     tipoTasso: ['Fisso' as TipoTasso, Validators.required],
-    codicePricing: [null as string | null, Validators.required],
-    spread: [null as number | null],
     attivo: [true],
     dataInizioValidita: [oggi(), Validators.required],
     dataFineValidita: [null as string | null],
@@ -88,40 +84,6 @@ export class ProdottoDettaglio {
     });
   }
 
-  /** Pricing proponibili: solo quelli del tipo di tasso del prodotto. */
-  protected readonly pricingProponibili = computed(() =>
-    this.pricing().filter((p) => p.tipoTasso === this.tipoTasso()),
-  );
-
-  /** Pricing richiamato nel form, per mostrarne tasso di riferimento e spread. */
-  protected readonly pricingScelto = toSignal(this.form.controls.codicePricing.valueChanges, {
-    initialValue: this.form.controls.codicePricing.value,
-  });
-  protected readonly datiPricing = computed(() =>
-    this.pricing().find((p) => p.codice === this.pricingScelto()),
-  );
-
-  /**
-   * Richiamando un pricing dal prodotto se ne importa lo spread, che resta modificabile.
-   * Si chiama solo alla scelta dell'utente, così il caricamento del prodotto non lo sovrascrive.
-   */
-  protected importaSpread(): void {
-    const pricing = this.datiPricing();
-    if (pricing) {
-      this.form.controls.spread.setValue(pricing.spread);
-      this.form.controls.spread.markAsDirty();
-    }
-  }
-
-  /** Cambiando tipo di tasso, il pricing dell'altro tipo non vale più: si toglie insieme al suo spread. */
-  protected cambiaTipoTasso(): void {
-    const pricing = this.datiPricing();
-    if (pricing && pricing.tipoTasso !== this.form.controls.tipoTasso.value) {
-      this.form.controls.codicePricing.setValue(null);
-      this.form.controls.spread.setValue(null);
-    }
-  }
-
   protected sezioneChiusa(nome: string): boolean {
     return this.chiuse().has(nome);
   }
@@ -159,13 +121,10 @@ export class ProdottoDettaglio {
       return;
     }
     const v = this.form.getRawValue();
-    const codicePricing = v.codicePricing || null;
     const prodotto: Prodotto = {
       ...v,
       id: this.prodottoId(),
       descrizione: v.descrizione || null,
-      codicePricing,
-      spread: codicePricing ? v.spread : null,
       dataFineValidita: v.dataFineValidita || null,
       ltvMassimo: v.tipologia === 'Mutuo' ? v.ltvMassimo : null,
       provinceAmmesse: v.provinceAmmesse

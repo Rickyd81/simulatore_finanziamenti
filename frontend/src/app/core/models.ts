@@ -47,10 +47,6 @@ export interface Prodotto {
   descrizione: string | null;
   tipologia: TipologiaProdotto;
   tipoTasso: TipoTasso;
-  /** Codice del pricing richiamato, dello stesso tipo di tasso; obbligatorio per il variabile. */
-  codicePricing: string | null;
-  /** Spread importato dal pricing (copia modificabile); null se il prodotto non richiama un pricing. */
-  spread: number | null;
   finalitaAmmesse: Finalita[];
   importoMinimo: number;
   importoMassimo: number;
@@ -74,7 +70,12 @@ export interface DatiCondizione {
   categoria: CategoriaCondizione;
   descrizione: string;
   tipoValore: TipoValore;
+  /** Per la categoria Tasso è lo spread, da sommare al tasso di riferimento. */
   valore: number;
+  /** Solo per la categoria Tasso: pricing richiamato dall'anagrafica pricing. */
+  codicePricing: string | null;
+  /** Solo per la categoria Tasso: tasso di riferimento importato dal pricing (copia modificabile). */
+  tassoRiferimento: number | null;
   importoMinimo: number | null;
   importoMassimo: number | null;
   periodicita: Periodicita;

@@ -23,12 +23,11 @@ public class RichiesteFinanziamentoController(SimulatoreDbContext db, MotoreSimu
     {
         var prodotti = await db.Prodotti.AsNoTracking().Include(p => p.Condizioni)
             .Where(p => p.Id == richiesta.ProdottoId && p.Attivo).ToListAsync(annullamento);
-        var indici = await db.Pricing.AsNoTracking().ToListAsync(annullamento);
         var simulazione = richiesta.Simulazione with
         {
             DataDecorrenza = richiesta.Simulazione.DataDecorrenza ?? DateOnly.FromDateTime(orologio.GetLocalNow().Date)
         };
-        var risultato = motore.Simula(simulazione, prodotti, indici);
+        var risultato = motore.Simula(simulazione, prodotti);
 
         if (risultato.Offerte.SingleOrDefault() is not { } offerta)
             return Problem(title: "Il prodotto scelto non è più disponibile per i dati indicati. Ripeti la simulazione.",

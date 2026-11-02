@@ -63,6 +63,7 @@ public class AnagraficaCondizioniController(SimulatoreDbContext db) : Controller
         c.Gruppo = string.IsNullOrWhiteSpace(c.Gruppo) ? null : c.Gruppo.Trim();
         if (await db.CondizioniAnagrafica.AnyAsync(x => x.Codice == c.Codice && x.Id != c.Id))
             ModelState.AddModelError(nameof(c.Codice), "Esiste già una condizione dell'anagrafica con questo codice");
+        await RegoleCondizione.VerificaPricing(c, db, ModelState, null);
         RegoleCondizione.Verifica(c, ModelState);
         return ModelState.IsValid;
     }

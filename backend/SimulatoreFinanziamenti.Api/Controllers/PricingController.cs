@@ -8,9 +8,8 @@ namespace SimulatoreFinanziamenti.Api.Controllers;
 
 /// <summary>
 /// Anagrafica pricing: tasso di riferimento (es. IRS per il fisso, Euribor per il variabile) e spread,
-/// per tipo di tasso. I prodotti ricevono una copia dello spread quando richiamano il pricing, quindi
-/// modificarlo qui non cambia lo spread dei prodotti già configurati (il tasso di riferimento invece
-/// vale per tutti i prodotti che usano il pricing).
+/// per tipo di tasso. Le condizioni di tasso dei prodotti richiamano un pricing e ne ricevono una copia
+/// di tasso e spread: modificarli qui non cambia le condizioni già configurate.
 /// </summary>
 [ApiController]
 [Route("api/pricing")]
@@ -29,8 +28,8 @@ public class PricingController(SimulatoreDbContext db) : ControllerBase
             ModelState.AddModelError(nameof(dati.Spread), "Indicare lo spread");
         if (dati.TipoTasso is null)
             ModelState.AddModelError(nameof(dati.TipoTasso), "Indicare il tipo di tasso");
-        else if (await db.Prodotti.AnyAsync(p => p.CodicePricing == codice && p.TipoTasso != dati.TipoTasso))
-            ModelState.AddModelError(nameof(dati.TipoTasso), "Il pricing è usato da prodotti con un altro tipo di tasso");
+        else if (await db.Condizioni.AnyAsync(c => c.CodicePricing == codice && c.Prodotto!.TipoTasso != dati.TipoTasso))
+            ModelState.AddModelError(nameof(dati.TipoTasso), "Il pricing è richiamato da condizioni di prodotti con un altro tipo di tasso");
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
 
         var pricing = await db.Pricing.FindAsync(codice);

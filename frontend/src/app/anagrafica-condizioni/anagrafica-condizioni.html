@@ -79,7 +79,13 @@
               }
             </td>
             <td class="num">
-              @if (c.tipoValore === 'Percentuale') {
+              @if (c.categoria === 'Tasso') {
+                {{ (c.tassoRiferimento ?? 0) + c.valore | number: '1.2-4' }} %
+                <span class="tenue"
+                  >{{ c.codicePricing }} {{ c.tassoRiferimento | number: '1.2-4' }} +
+                  {{ c.valore | number: '1.2-4' }}</span
+                >
+              } @else if (c.tipoValore === 'Percentuale') {
                 {{ c.valore | number: '1.2-4' }} %
               } @else {
                 {{ c.valore | number: '1.2-2' }} €

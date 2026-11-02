@@ -16,8 +16,10 @@ import {
   DatiCondizione,
   Finalita,
   Periodicita,
+  TipoTasso,
   TipoValore,
 } from '../core/models';
+import { DecimalPipe } from '@angular/common';
 import { Importo } from './importo';
 
 /** Condizione in modifica: i dati economici più l'eventuale gruppo dell'anagrafica. */
@@ -32,6 +34,8 @@ export function condizioneVuota(): DatiCondizione {
     descrizione: '',
     tipoValore: 'Percentuale',
     valore: 0,
+    codicePricing: null,
+    tassoRiferimento: null,
     importoMinimo: null,
     importoMassimo: null,
     periodicita: 'UnaTantum',
@@ -54,18 +58,15 @@ export function condizioneVuota(): DatiCondizione {
  */
 @Component({
   selector: 'app-editor-condizione',
-  imports: [Importo, ReactiveFormsModule],
+  imports: [DecimalPipe, Importo, ReactiveFormsModule],
   templateUrl: './editor-condizione.html',
 })
 export class EditorCondizione {
   private readonly fb = inject(FormBuilder);
 
   readonly condizione = input.required<CondizioneEditabile>();
-  /**
-   * Il prodotto richiama un pricing (valore di tasso = spread) o no (valore = TAN);
-   * null nell'anagrafica, dove il valore può essere l'uno o l'altro.
-   */
-  readonly conPricing = input<boolean | null>(null);
+  /** Tipo di tasso del prodotto, per proporre solo i suoi pricing; null nell'anagrafica (tutti i pricing). */
+  readonly tipoTasso = input<TipoTasso | null>(null);
   readonly conGruppo = input(false);
   readonly gruppi = input<string[]>([]);
   readonly nota = input<string | null>(null);
@@ -73,7 +74,13 @@ export class EditorCondizione {
   readonly salva = output<CondizioneEditabile>();
   readonly annulla = output<void>();
 
-  protected readonly tabelle = toSignal(inject(Api).tabelle$);
+  private readonly api = inject(Api);
+  protected readonly tabelle = toSignal(this.api.tabelle$);
+  private readonly pricing = toSignal(this.api.pricing(), { initialValue: [] });
+  protected readonly pricingProponibili = computed(() => {
+    const tipo = this.tipoTasso();
+    return tipo ? this.pricing().filter((p) => p.tipoTasso === tipo) : this.pricing();
+  });
   protected readonly chiuse = signal<Set<string>>(new Set());
 
   protected readonly form = this.fb.group({
@@ -83,6 +90,8 @@ export class EditorCondizione {
     descrizione: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
     tipoValore: this.fb.nonNullable.control<TipoValore>('Percentuale'),
     valore: this.fb.control<number | null>(null, Validators.required),
+    codicePricing: this.fb.control<string | null>(null),
+    tassoRiferimento: this.fb.control<number | null>(null),
     importoMinimo: this.fb.control<number | null>(null),
     importoMassimo: this.fb.control<number | null>(null),
     periodicita: this.fb.nonNullable.control<Periodicita>('UnaTantum'),
@@ -102,16 +111,10 @@ export class EditorCondizione {
   private readonly tipoValore = toSignal(this.form.controls.tipoValore.valueChanges);
   protected readonly tasso = computed(() => this.categoria() === 'Tasso');
   protected readonly percentuale = computed(() => this.tipoValore() === 'Percentuale');
-  protected readonly etichettaTasso = computed(() => {
-    switch (this.conPricing()) {
-      case true:
-        return 'Spread (%)';
-      case false:
-        return 'TAN (%)';
-      default:
-        return 'TAN o spread (%)';
-    }
-  });
+  private readonly tassoRiferimento = toSignal(this.form.controls.tassoRiferimento.valueChanges);
+  private readonly spread = toSignal(this.form.controls.valore.valueChanges);
+  /** TAN della condizione di tasso mentre la si compila: tasso di riferimento + spread. */
+  protected readonly tan = computed(() => (this.tassoRiferimento() ?? 0) + (this.spread() ?? 0));
 
   constructor() {
     effect(() => {
@@ -142,7 +145,21 @@ export class EditorCondizione {
     return c.invalid && c.touched;
   }
 
+  /** Richiamando un pricing se ne importano tasso di riferimento e spread, che restano modificabili. */
+  protected importaPricing(): void {
+    const pricing = this.pricing().find((p) => p.codice === this.form.controls.codicePricing.value);
+    if (!pricing) return;
+    this.form.controls.tassoRiferimento.setValue(pricing.valore);
+    this.form.controls.valore.setValue(pricing.spread);
+  }
+
   protected conferma(): void {
+    // Pricing e tasso di riferimento sono obbligatori solo per le condizioni di tasso.
+    const tasso = this.form.controls.categoria.value === 'Tasso';
+    for (const c of [this.form.controls.codicePricing, this.form.controls.tassoRiferimento]) {
+      c.setValidators(tasso ? Validators.required : null);
+      c.updateValueAndValidity();
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -158,6 +175,8 @@ export class EditorCondizione {
       // Per un tasso la periodicità è annua e il valore è sempre una percentuale.
       tipoValore: v.categoria === 'Tasso' ? 'Percentuale' : v.tipoValore,
       periodicita: v.categoria === 'Tasso' ? 'Annuale' : v.periodicita,
+      codicePricing: tasso ? v.codicePricing : null,
+      tassoRiferimento: tasso ? v.tassoRiferimento : null,
       importoMinimo: percentuale ? v.importoMinimo : null,
       importoMassimo: percentuale ? v.importoMassimo : null,
       dataFineValidita: v.dataFineValidita || null,

@@ -18,11 +18,8 @@
         </div>
         <span class="tenue">
           Le condizioni importate sono una copia: puoi modificarle sul prodotto senza cambiare
-          l'anagrafica.
-          @if (conPricing()) {
-            Per questo prodotto il valore delle condizioni di tasso è lo spread sul tasso di
-            riferimento del pricing.
-          }
+          l'anagrafica. Le condizioni di tasso devono richiamare un pricing a tasso
+          {{ tipoTasso() === 'Variabile' ? 'variabile' : 'fisso' }}.
         </span>
       </div>
 
@@ -81,7 +78,13 @@
                     }
                   </td>
                   <td class="num">
-                    @if (c.tipoValore === 'Percentuale') {
+                    @if (c.categoria === 'Tasso') {
+                      {{ (c.tassoRiferimento ?? 0) + c.valore | number: '1.2-4' }} %
+                      <span class="tenue"
+                        >{{ c.codicePricing }} {{ c.tassoRiferimento | number: '1.2-4' }} +
+                        {{ c.valore | number: '1.2-4' }}</span
+                      >
+                    } @else if (c.tipoValore === 'Percentuale') {
                       {{ c.valore | number: '1.2-4' }} %
                     } @else {
                       {{ c.valore | number: '1.2-2' }} €
