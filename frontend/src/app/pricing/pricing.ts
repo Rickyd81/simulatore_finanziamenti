@@ -77,7 +77,7 @@ export class AnagraficaPricing {
   protected elimina(pricing: Pricing): void {
     if (
       !confirm(
-        `Eliminare il pricing ${pricing.codice}? I prodotti che lo usano non saranno più simulabili.`,
+        `Eliminare il pricing ${pricing.codice}? Le condizioni dei prodotti che lo richiamano ne conservano una copia e non cambiano.`,
       )
     )
       return;
