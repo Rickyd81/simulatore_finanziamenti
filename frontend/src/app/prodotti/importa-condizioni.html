@@ -1,0 +1,123 @@
+<div class="editor">
+  <div class="sezione">
+    <div class="sezione-titolo">Importa dall'anagrafica condizioni</div>
+    <div class="sezione-corpo">
+      @if (errore(); as e) {
+        <p class="messaggio errore">{{ e }}</p>
+      }
+      <div class="pagina-intestazione">
+        <div class="campo">
+          <label for="iCerca">Ricerca</label>
+          <input
+            id="iCerca"
+            type="text"
+            placeholder="Codice, descrizione o gruppo"
+            [ngModel]="filtro()"
+            (ngModelChange)="filtro.set($event)"
+          />
+        </div>
+        <span class="tenue">
+          Le condizioni importate sono una copia: puoi modificarle sul prodotto senza cambiare
+          l'anagrafica.
+          @if (tipoTasso() === 'Variabile') {
+            Per questo prodotto il valore delle condizioni di tasso è lo spread sull'indice.
+          }
+        </span>
+      </div>
+
+      <div class="tabella-contenitore">
+        <table class="lista">
+          <thead>
+            <tr>
+              <th class="azioni"></th>
+              <th>Codice</th>
+              <th>Categoria</th>
+              <th>Descrizione</th>
+              <th class="num">Valore</th>
+              <th>Periodicità</th>
+              <th>Fasce</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (anagrafica() === null) {
+              <tr class="vuota">
+                <td colspan="7">Caricamento…</td>
+              </tr>
+            }
+            @for (g of gruppi(); track g.nome) {
+              <tr class="gruppo">
+                <td>
+                  <input
+                    type="checkbox"
+                    [attr.aria-label]="'Seleziona tutto il gruppo ' + g.nome"
+                    [checked]="gruppoSelezionato(g)"
+                    [disabled]="!gruppoDisponibile(g)"
+                    (change)="alternaGruppo(g)"
+                  />
+                </td>
+                <td colspan="6">{{ g.nome }}</td>
+              </tr>
+              @for (c of g.condizioni; track c.id) {
+                <tr [class.disabilitata]="presente(c)" [class.selezionata]="selezionata(c)">
+                  <td>
+                    <input
+                      type="checkbox"
+                      [attr.aria-label]="'Seleziona ' + c.codice"
+                      [checked]="selezionata(c)"
+                      [disabled]="presente(c)"
+                      (change)="alterna(c)"
+                    />
+                  </td>
+                  <td>{{ c.codice }}</td>
+                  <td>{{ c.categoria | decodifica: 'categorieCondizione' }}</td>
+                  <td>
+                    {{ c.descrizione }}
+                    @if (c.finalita) {
+                      <span class="badge">{{ c.finalita | decodifica: 'finalita' }}</span>
+                    }
+                    @if (presente(c)) {
+                      <span class="badge">Codice già presente nel prodotto</span>
+                    }
+                  </td>
+                  <td class="num">
+                    @if (c.tipoValore === 'Percentuale') {
+                      {{ c.valore | number: '1.2-4' }} %
+                    } @else {
+                      {{ c.valore | number: '1.2-2' }} €
+                    }
+                  </td>
+                  <td>{{ c.periodicita | decodifica: 'periodicita' }}</td>
+                  <td>{{ fasce(c) }}</td>
+                </tr>
+              }
+            } @empty {
+              @if (anagrafica() !== null) {
+                <tr class="vuota">
+                  <td colspan="7">
+                    @if (filtro()) {
+                      Nessuna condizione corrisponde alla ricerca
+                    } @else {
+                      L'anagrafica condizioni è vuota: inserisci le condizioni dal menù Anagrafica
+                      condizioni.
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="azioni-fondo">
+    <button
+      type="button"
+      class="btn btn-scuro"
+      [disabled]="selezionate().size === 0"
+      (click)="conferma()"
+    >
+      Importa selezionate ({{ selezionate().size }})
+    </button>
+    <button type="button" class="btn" (click)="annulla.emit()">Annulla</button>
+  </div>
+</div>

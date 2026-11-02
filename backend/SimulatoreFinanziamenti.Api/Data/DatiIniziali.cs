@@ -7,8 +7,16 @@ public static class DatiIniziali
 {
     private static readonly DateOnly Inizio = new(2026, 1, 1);
 
-    public static void Carica(SimulatoreDbContext db)
+    public static void Carica(SimulatoreDbContext db, bool caricaAnagrafica = false)
     {
+        // L'anagrafica di esempio si carica solo quando la tabella è appena stata creata,
+        // così chi la svuota volutamente non se la ritrova al riavvio.
+        if (caricaAnagrafica && !db.CondizioniAnagrafica.Any())
+        {
+            db.CondizioniAnagrafica.AddRange(AnagraficaCondizioni());
+            db.SaveChanges();
+        }
+
         if (db.Prodotti.Any()) return;
 
         db.Indici.Add(new IndiceRiferimento { Codice = "EUR3M", Descrizione = "Euribor 3 mesi", Valore = 2.05m, DataRilevazione = new DateOnly(2026, 10, 1) });
@@ -18,6 +26,21 @@ public static class DatiIniziali
             PrestitoLiquidita(), PrestitoAuto(), PrestitoGreen());
 
         db.SaveChanges();
+    }
+
+    private static IEnumerable<CondizioneAnagrafica> AnagraficaCondizioni() =>
+    [
+        .. CostiMutuo().Select(c => InAnagrafica(c, "Costi mutuo")),
+        .. CostiPrestito(istruttoria: 150, incasso: 1.5m).Select(c => InAnagrafica(c, "Costi prestito", c.Codice == "BOL" ? "BOL" : c.Codice + "-PRE")),
+        .. MutuoFisso().Condizioni.Where(c => c.Categoria == CategoriaCondizione.Tasso).Select(c => InAnagrafica(c, "Tassi mutuo fisso per durata e LTV", "MF-" + c.Codice))
+    ];
+
+    private static CondizioneAnagrafica InAnagrafica(Condizione c, string gruppo, string? codice = null)
+    {
+        var a = new CondizioneAnagrafica { Gruppo = gruppo };
+        a.CopiaDati(c);
+        if (codice is not null) a.Codice = codice;
+        return a;
     }
 
     private static Prodotto Mutuo(string codice, string nome, string descrizione, TipoTasso tipoTasso, params Finalita[] finalita) => new()
