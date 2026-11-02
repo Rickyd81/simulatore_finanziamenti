@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace SimulatoreFinanziamenti.Api.Domain;
@@ -23,10 +24,26 @@ public abstract class DatiCondizione
     public TipoValore TipoValore { get; set; }
 
     /// <summary>
-    /// Valore della condizione. Per la categoria Tasso è lo spread da sommare al tasso di riferimento
-    /// del pricing del prodotto (sostituisce, per la sua fascia, lo spread importato dal pricing).
+    /// Valore della condizione. Per la categoria Tasso è lo spread, da sommare a <see cref="TassoRiferimento"/>.
     /// </summary>
     public decimal Valore { get; set; }
+
+    /// <summary>
+    /// Solo per la categoria Tasso: pricing richiamato dall'anagrafica pricing (obbligatorio), dello stesso
+    /// tipo di tasso del prodotto. Richiamandolo se ne importano tasso di riferimento e spread.
+    /// </summary>
+    [MaxLength(20)]
+    public string? CodicePricing { get; set; }
+
+    /// <summary>
+    /// Solo per la categoria Tasso: tasso di riferimento in percentuale (es. IRS o Euribor), importato dal
+    /// pricing e modificabile. È una copia: aggiornare il pricing non cambia le condizioni già configurate.
+    /// </summary>
+    public decimal? TassoRiferimento { get; set; }
+
+    /// <summary>TAN della condizione di tasso: tasso di riferimento + spread.</summary>
+    [NotMapped]
+    public decimal? Tan => Categoria == CategoriaCondizione.Tasso ? (TassoRiferimento ?? 0) + Valore : null;
 
     /// <summary>Minimo applicato a una condizione percentuale (es. istruttoria 1% min 500 €).</summary>
     public decimal? ImportoMinimo { get; set; }
@@ -60,6 +77,8 @@ public abstract class DatiCondizione
         Descrizione = origine.Descrizione;
         TipoValore = origine.TipoValore;
         Valore = origine.Valore;
+        CodicePricing = origine.CodicePricing;
+        TassoRiferimento = origine.TassoRiferimento;
         ImportoMinimo = origine.ImportoMinimo;
         ImportoMassimo = origine.ImportoMassimo;
         Periodicita = origine.Periodicita;

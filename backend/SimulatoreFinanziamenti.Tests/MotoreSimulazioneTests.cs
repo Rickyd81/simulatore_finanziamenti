@@ -30,7 +30,7 @@ public class MotoreSimulazioneTests : IDisposable
     private RisultatoSimulazione Simula(RichiestaSimulazione richiesta)
     {
         var prodotti = _db.Prodotti.Include(p => p.Condizioni).AsNoTracking().ToList();
-        return new MotoreSimulazione().Simula(richiesta with { DataDecorrenza = Decorrenza }, prodotti, _db.Pricing.AsNoTracking().ToList());
+        return new MotoreSimulazione().Simula(richiesta with { DataDecorrenza = Decorrenza }, prodotti);
     }
 
     private static RichiestaSimulazione MutuoPrimaCasa(int eta = 40, string provincia = "RM") => new()
@@ -53,7 +53,7 @@ public class MotoreSimulazioneTests : IDisposable
 
         var fisso = risultato.Offerte.Single(o => o.Codice == "MUT-FIX");
         Assert.Equal(3.40m, fisso.Tan); // oltre 20 anni e LTV oltre il 60%
-        Assert.Equal("IRS20", fisso.IndiceRiferimento); // pricing fisso: IRS 20 anni 2,45% + spread SPR4 0,95%
+        Assert.Equal("IRS20", fisso.IndiceRiferimento); // condizione TAN4: pricing IRS20 2,45% + spread 0,95%
         Assert.Equal(2.45m, fisso.ValoreIndice);
         Assert.Equal(0.95m, fisso.Spread);
         Assert.True(fisso.Taeg > fisso.Tan);
@@ -71,9 +71,9 @@ public class MotoreSimulazioneTests : IDisposable
     }
 
     [Fact]
-    public void MutuoVariabile_LaCondizioneDiTassoSostituisceLoSpreadDelPricing()
+    public void MutuoVariabile_SpreadDellaCondizionePerFasciaDiLtv()
     {
-        // LTV al 50%: vale lo spread agevolato SPR1 invece di quello importato dal pricing EUR3M.
+        // LTV al 50%: vale la condizione TAN1, Euribor 3M + spread agevolato 0,95%.
         var variabile = Simula(MutuoPrimaCasa() with { Importo = 150_000 }).Offerte.Single(o => o.Codice == "MUT-VAR");
 
         Assert.Equal("EUR3M", variabile.IndiceRiferimento);
@@ -82,7 +82,7 @@ public class MotoreSimulazioneTests : IDisposable
     }
 
     [Fact]
-    public void ProdottiFissi_TanDaPricingPiuSpreadImportatoOModificato()
+    public void ProdottiFissi_TanDaTassoDelPricingPiuSpread()
     {
         decimal Tan(RichiestaSimulazione r, string codice) => Simula(r).Offerte.Single(o => o.Codice == codice).Tan;
 

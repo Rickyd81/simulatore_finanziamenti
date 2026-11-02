@@ -10,11 +10,10 @@ namespace SimulatoreFinanziamenti.Api.Services;
 /// </summary>
 public class MotoreSimulazione
 {
-    public RisultatoSimulazione Simula(RichiestaSimulazione richiesta, IEnumerable<Prodotto> prodotti, IEnumerable<Pricing> pricing)
+    public RisultatoSimulazione Simula(RichiestaSimulazione richiesta, IEnumerable<Prodotto> prodotti)
     {
         var decorrenza = richiesta.DataDecorrenza ?? DateOnly.FromDateTime(DateTime.Today);
         var ltv = richiesta.ValoreImmobile is > 0 ? Arrotonda(richiesta.Importo / richiesta.ValoreImmobile.Value * 100) : (decimal?)null;
-        var valoriIndici = pricing.ToDictionary(i => i.Codice, i => i.Valore, StringComparer.OrdinalIgnoreCase);
 
         var offerte = new List<Offerta>();
         var nonDisponibili = new List<ProdottoNonDisponibile>();
@@ -28,27 +27,15 @@ public class MotoreSimulazione
             var motivi = VerificaRequisiti(prodotto, richiesta, ltv, decorrenza);
             var condizioni = prodotto.Condizioni.Where(c => Applicabile(c, richiesta, ltv, decorrenza)).OrderBy(c => c.Codice).ToList();
             var tasso = condizioni.FirstOrDefault(c => c.Categoria == CategoriaCondizione.Tasso);
-            // Fisso e variabile si calcolano allo stesso modo: TAN = tasso di riferimento del pricing + spread,
-            // dove lo spread è quello della condizione di tasso applicabile, se c'è, altrimenti quello
-            // importato dal pricing.
-            var valoreTasso = tasso?.Valore ?? prodotto.Spread;
-            decimal? valoreIndice = null;
-
-            if (motivi.Count == 0 && valoreTasso is null)
+            if (motivi.Count == 0 && tasso is null)
                 motivi.Add("Nessun tasso previsto per l'importo, la durata o l'LTV richiesti");
-            if (motivi.Count == 0)
-            {
-                if (prodotto.CodicePricing is { } codice && valoriIndici.TryGetValue(codice, out var v)) valoreIndice = v;
-                else motivi.Add("Pricing del tasso non configurato");
-            }
-
             if (motivi.Count > 0)
             {
                 nonDisponibili.Add(new ProdottoNonDisponibile(prodotto.Id, prodotto.Nome, motivi));
                 continue;
             }
 
-            offerte.Add(CalcolaOfferta(prodotto, richiesta, valoreTasso!.Value, valoreIndice, condizioni.Where(c => c.Categoria != CategoriaCondizione.Tasso).ToList(), decorrenza));
+            offerte.Add(CalcolaOfferta(prodotto, richiesta, tasso!, condizioni.Where(c => c.Categoria != CategoriaCondizione.Tasso).ToList(), decorrenza));
         }
 
         return new RisultatoSimulazione
@@ -109,9 +96,10 @@ public class MotoreSimulazione
         return Arrotonda(valore);
     }
 
-    private static Offerta CalcolaOfferta(Prodotto p, RichiestaSimulazione r, decimal valoreTasso, decimal? valoreIndice, List<Condizione> costi, DateOnly decorrenza)
+    private static Offerta CalcolaOfferta(Prodotto p, RichiestaSimulazione r, Condizione tasso, List<Condizione> costi, DateOnly decorrenza)
     {
-        var tan = Math.Max(0, valoreTasso + (valoreIndice ?? 0));
+        // Fisso e variabile si calcolano allo stesso modo: TAN = tasso di riferimento del pricing + spread.
+        var tan = Math.Max(0, tasso.Tan!.Value);
         var n = r.DurataMesi;
         var anni = (n + 11) / 12;
 
@@ -148,9 +136,9 @@ public class MotoreSimulazione
             Descrizione = p.Descrizione,
             Tipologia = p.Tipologia,
             TipoTasso = p.TipoTasso,
-            IndiceRiferimento = valoreIndice is null ? null : p.CodicePricing,
-            ValoreIndice = valoreIndice,
-            Spread = valoreIndice is null ? null : valoreTasso,
+            IndiceRiferimento = tasso.CodicePricing,
+            ValoreIndice = tasso.TassoRiferimento,
+            Spread = tasso.Valore,
             Tan = tan,
             Taeg = Taeg(r.Importo - costiIniziali, pagamentiTaeg),
             Rata = piano[0].Rata,

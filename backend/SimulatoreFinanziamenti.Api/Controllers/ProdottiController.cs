@@ -118,6 +118,18 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
             return ValidationProblem(ModelState);
         }
 
+        var tipoTasso = await db.Prodotti.Where(p => p.Id == id).Select(p => p.TipoTasso).FirstAsync();
+        var codiciPricing = modelli.Where(a => a.CodicePricing != null).Select(a => a.CodicePricing!).Distinct().ToList();
+        var tipiPricing = await db.Pricing.Where(p => codiciPricing.Contains(p.Codice)).ToDictionaryAsync(p => p.Codice, p => p.TipoTasso);
+        var altroTipo = modelli.Where(a => a.CodicePricing is { } c && tipiPricing.GetValueOrDefault(c) != tipoTasso)
+            .Select(a => a.Codice).Order().ToList();
+        if (altroTipo.Count > 0)
+        {
+            ModelState.AddModelError(nameof(richiesta.CondizioniAnagrafica),
+                $"Le condizioni {string.Join(", ", altroTipo)} richiamano un pricing di un altro tipo di tasso");
+            return ValidationProblem(ModelState);
+        }
+
         var importate = modelli.Select(a => Domain.Condizione.DaAnagrafica(a, id)).OrderBy(c => c.Categoria).ThenBy(c => c.Codice).ToList();
         db.Condizioni.AddRange(importate);
         await db.SaveChangesAsync();
@@ -162,25 +174,14 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
             ModelState.AddModelError(nameof(p.DurataMassimaMesi), "La durata massima deve essere maggiore della minima");
         if (p.DataFineValidita < p.DataInizioValidita)
             ModelState.AddModelError(nameof(p.DataFineValidita), "La data di fine validità precede quella di inizio");
-        if (string.IsNullOrWhiteSpace(p.CodicePricing))
-            ModelState.AddModelError(nameof(p.CodicePricing), "Indicare il pricing del prodotto");
-        else
-        {
-            p.CodicePricing = p.CodicePricing.Trim().ToUpperInvariant();
-            var pricing = await db.Pricing.AsNoTracking().FirstOrDefaultAsync(x => x.Codice == p.CodicePricing);
-            if (pricing is null)
-                ModelState.AddModelError(nameof(p.CodicePricing), "Pricing non presente nell'anagrafica pricing");
-            else if (pricing.TipoTasso != p.TipoTasso)
-                ModelState.AddModelError(nameof(p.CodicePricing), "Il pricing scelto è di un altro tipo di tasso");
-            // Richiamando il pricing se ne importa lo spread, se non è già stato indicato sul prodotto.
-            else p.Spread ??= pricing.Spread;
-        }
         return ModelState.IsValid;
     }
 
     private async Task<bool> Valida(Condizione c)
     {
         RegoleCondizione.Normalizza(c);
+        var tipoTasso = await db.Prodotti.Where(p => p.Id == c.ProdottoId).Select(p => p.TipoTasso).FirstAsync();
+        await RegoleCondizione.VerificaPricing(c, db, ModelState, tipoTasso);
         if (await db.Condizioni.AnyAsync(x => x.ProdottoId == c.ProdottoId && x.Codice == c.Codice && x.Id != c.Id))
             ModelState.AddModelError(nameof(c.Codice), "Esiste già una condizione con questo codice per il prodotto");
         RegoleCondizione.Verifica(c, ModelState);

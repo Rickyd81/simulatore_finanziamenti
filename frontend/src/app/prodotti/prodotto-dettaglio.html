@@ -68,45 +68,12 @@
             </div>
             <div class="campo">
               <label for="tipoTasso">Tipo di tasso *</label>
-              <select id="tipoTasso" formControlName="tipoTasso" (change)="cambiaTipoTasso()">
+              <select id="tipoTasso" formControlName="tipoTasso">
                 @for (t of tabelle()?.tipiTasso; track t.codice) {
                   <option [value]="t.codice">{{ t.descrizione }}</option>
                 }
               </select>
             </div>
-            <div class="campo" [class.non-valido]="nonValido('codicePricing')">
-              <label for="pricing">Pricing *</label>
-              <select id="pricing" formControlName="codicePricing" (change)="importaSpread()">
-                <option [ngValue]="null">Seleziona un'opzione</option>
-                @for (p of pricingProponibili(); track p.codice) {
-                  <option [value]="p.codice">{{ p.descrizione }} ({{ p.codice }})</option>
-                }
-              </select>
-              @if (datiPricing(); as p) {
-                <span class="aiuto"
-                  >Tasso di riferimento {{ p.valore | number: '1.2-4' }}%, spread del pricing
-                  {{
-                    p.spread === null ? 'non indicato' : (p.spread | number: '1.2-4') + '%'
-                  }}.</span
-                >
-              } @else {
-                <span class="aiuto"
-                  >Sono proposti solo i pricing a tasso
-                  {{ tipoTasso() === 'Variabile' ? 'variabile' : 'fisso' }}.</span
-                >
-              }
-            </div>
-            @if (datiPricing()) {
-              <div class="campo">
-                <label for="spread">Spread (%)</label>
-                <input id="spread" type="number" step="0.01" formControlName="spread" />
-                <span class="aiuto"
-                  >Importato dal pricing, modificabile. Il TAN sarà tasso di riferimento + spread;
-                  le condizioni di tasso del prodotto, se applicabili, sostituiscono lo
-                  spread.</span
-                >
-              </div>
-            }
           </div>
         }
       </div>
@@ -288,7 +255,7 @@
   @if (scheda() === 'condizioni' && !nuovo()) {
     <app-condizioni-prodotto
       [prodottoId]="prodottoId()"
-      [conPricing]="!!datiPricing()"
+      [tipoTasso]="tipoTasso()"
       [(condizioni)]="condizioni"
     />
   }

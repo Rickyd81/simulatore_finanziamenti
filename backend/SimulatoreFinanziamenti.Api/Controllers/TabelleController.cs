@@ -42,7 +42,7 @@ public class TabelleController : ControllerBase
         Voci<TipoTasso>(new() { [TipoTasso.Fisso] = "Fisso", [TipoTasso.Variabile] = "Variabile" }),
         Voci<CategoriaCondizione>(new()
         {
-            [CategoriaCondizione.Tasso] = "Tasso (TAN / spread)",
+            [CategoriaCondizione.Tasso] = "Tasso",
             [CategoriaCondizione.SpesaIstruttoria] = "Spese di istruttoria",
             [CategoriaCondizione.SpesaPerizia] = "Spese di perizia",
             [CategoriaCondizione.CommissioneIncassoRata] = "Commissione incasso rata",

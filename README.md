@@ -18,12 +18,11 @@ economiche.
   mutuo"), da importare nei prodotti invece di inserirle ogni volta. Il prodotto ne riceve una
   copia: modificare o eliminare una condizione in anagrafica non cambia i prodotti già configurati.
 - **Area banca – Anagrafica pricing**: coppie tasso di riferimento + spread, per tipo di tasso:
-  fisso (es. IRS 20 anni, tasso base prestiti) o variabile (es. Euribor 3 mesi). Il prodotto
-  richiama solo i pricing del suo tipo di tasso e ne importa lo spread come copia modificabile;
-  le condizioni di tasso del prodotto, se applicabili, lo sostituiscono per la loro fascia (es.
-  uno spread diverso per LTV). Il pricing è obbligatorio per ogni prodotto; i prodotti fissi delle
-  versioni precedenti ricevono il pricing TF-PREC (tasso e spread a zero), così il loro TAN resta
-  quello indicato nelle condizioni di tasso.
+  fisso (es. IRS 20 anni, tasso base prestiti) o variabile (es. Euribor 3 mesi). Il prodotto ha
+  solo il tipo di tasso: ogni condizione di tasso richiama un pricing di quel tipo e ne importa
+  tasso di riferimento e spread come copia modificabile (TAN = tasso + spread). Le condizioni di
+  tasso delle versioni precedenti senza pricing ricevono il pricing TF-PREC (tasso e spread a
+  zero) e il loro valore diventa lo spread, così il TAN resta lo stesso.
 
 L'indagine sui simulatori esistenti da cui nascono queste scelte è in
 [docs/indagine-simulatori.md](docs/indagine-simulatori.md).
@@ -78,9 +77,9 @@ La specifica OpenAPI è pubblicata su `/openapi/v1.json`.
 ## Regole di calcolo
 
 - Ammortamento alla francese con rata mensile costante; l'ultima rata assorbe gli arrotondamenti.
-- TAN, uguale per fisso e variabile: tasso di riferimento del pricing + spread, dove lo spread è
-  quello della condizione di categoria *Tasso* applicabile (la prima in ordine di codice), se c'è,
-  altrimenti quello importato dal pricing; per il variabile si ipotizza che l'indice resti costante.
+- TAN, uguale per fisso e variabile: tasso di riferimento + spread della condizione di categoria
+  *Tasso* applicabile (la prima in ordine di codice); per il variabile si ipotizza che l'indice resti
+  costante.
 - Le condizioni percentuali si calcolano sull'importo finanziato, con eventuali minimo e massimo.
 - Spese mensili addebitate con ogni rata, spese annuali con la prima rata di ogni anno.
 - TAEG: tasso annuo effettivo che eguaglia l'importo erogato al netto dei costi iniziali inclusi

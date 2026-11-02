@@ -3,7 +3,7 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Api, messaggioErrore } from '../core/api';
 import { DecodificaPipe } from '../core/decodifica';
-import { CondizioneAnagrafica } from '../core/models';
+import { CondizioneAnagrafica, TipoTasso } from '../core/models';
 import { descriviFasce } from '../shared/editor-condizione';
 
 interface Gruppo {
@@ -22,8 +22,7 @@ export class ImportaCondizioni {
 
   /** Codici delle condizioni già presenti nel prodotto, che non si possono importare di nuovo. */
   readonly codiciPresenti = input.required<Set<string>>();
-  /** Il prodotto richiama un pricing: le condizioni di tasso sono spread sul tasso di riferimento. */
-  readonly conPricing = input.required<boolean>();
+  readonly tipoTasso = input.required<TipoTasso>();
   readonly importa = output<number[]>();
   readonly annulla = output<void>();
 
