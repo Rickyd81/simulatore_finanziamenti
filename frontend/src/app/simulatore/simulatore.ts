@@ -16,6 +16,7 @@ import { Icona } from '../shared/icona';
 import { Importo } from '../shared/importo';
 import { Paginatore } from '../shared/paginatore';
 import { StatoTabella, scaricaCsv } from '../shared/tabella';
+import { scaricaPreventivoPdf } from './preventivo-pdf';
 import { RichiestaFinanziamentoDialog } from './richiesta-finanziamento';
 
 type Scheda = 'riepilogo' | 'piano';
@@ -69,6 +70,7 @@ export class Simulatore {
   /** Dati della simulazione mostrata: la richiesta di finanziamento parte da questi, non dal form. */
   protected readonly simulazione = signal<RichiestaSimulazione | null>(null);
   protected readonly richiestaAperta = signal(false);
+  protected readonly stampaInCorso = signal(false);
   protected readonly selezionata = signal<Offerta | null>(null);
   protected readonly scheda = signal<Scheda>('riepilogo');
   protected readonly mostraEsclusi = signal(false);
@@ -135,6 +137,27 @@ export class Simulatore {
   protected nonValido(campo: keyof typeof this.form.controls): boolean {
     const c = this.form.controls[campo];
     return c.invalid && c.touched;
+  }
+
+  /** Scarica il preventivo dell'offerta selezionata in PDF, con i dati della simulazione mostrata. */
+  protected async stampaPreventivo(): Promise<void> {
+    const offerta = this.selezionata();
+    const simulazione = this.simulazione();
+    if (!offerta || !simulazione) return;
+    this.stampaInCorso.set(true);
+    this.errore.set(null);
+    try {
+      await scaricaPreventivoPdf({
+        offerta,
+        simulazione,
+        ltv: this.risultato()?.ltv ?? null,
+        tabelle: this.tabelle(),
+      });
+    } catch {
+      this.errore.set('Non è stato possibile generare il PDF del preventivo. Riprova.');
+    } finally {
+      this.stampaInCorso.set(false);
+    }
   }
 
   protected scaricaPiano(): void {

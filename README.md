@@ -6,7 +6,8 @@ economiche.
 
 - **Portale clienti – Simulatore**: il cliente indica finalità, importo, valore dell'immobile,
   durata, provincia ed età; il simulatore propone i prodotti adatti ordinati per TAEG, con
-  rata, TAN, TAEG, costi e piano di ammortamento scaricabile. Dal riepilogo può inviare la
+  rata, TAN, TAEG, costi e piano di ammortamento scaricabile. Dal riepilogo può stampare il
+  **preventivo in PDF** e inviare la
   **richiesta di finanziamento** alla banca (core banking simulato, vedi
   [docs/api-core-banking.md](docs/api-core-banking.md)).
 - **Area banca – Fabbrica prodotti**: anagrafica dei prodotti (tipologia, finalità, importi,

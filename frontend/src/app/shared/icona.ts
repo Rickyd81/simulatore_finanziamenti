@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 
-export type NomeIcona = 'modifica' | 'elimina' | 'apri' | 'scarica';
+export type NomeIcona = 'modifica' | 'elimina' | 'apri' | 'scarica' | 'pdf';
 
 /** Icone SVG minime usate nelle liste (stessa resa su tutti i sistemi, a differenza delle emoji). */
 @Component({
@@ -35,6 +35,22 @@ export type NomeIcona = 'modifica' | 'elimina' | 'apri' | 'scarica';
             stroke-linecap="round"
             stroke-linejoin="round"
             d="M12 4v11m-5-5 5 5 5-5M5 20h14"
+          />
+        }
+        @case ('pdf') {
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linejoin="round"
+            d="M14 3H6v18h12V7l-4-4zm0 0v4h4"
+          />
+          <path
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            d="M9 13h6M9 17h6"
           />
         }
       }
