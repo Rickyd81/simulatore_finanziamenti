@@ -39,6 +39,22 @@ public static class DatiIniziali
             db.SaveChanges();
         }
 
+        // Il pricing è obbligatorio per tutti i prodotti. I prodotti a tasso fisso delle versioni precedenti
+        // avevano il TAN direttamente nelle condizioni di tasso: richiamano un pricing con tasso di riferimento
+        // e spread a zero, così il TAN (0 + condizione di tasso) resta quello di prima.
+        var fissiSenzaPricing = db.Prodotti.Where(p => p.CodicePricing == null).ToList();
+        if (fissiSenzaPricing.Count > 0)
+        {
+            if (db.Pricing.Find(CodicePricingPrecedenti) is null)
+                db.Pricing.Add(Pricing(CodicePricingPrecedenti, "Tasso fisso dei prodotti precedenti: TAN nelle condizioni di tasso", TipoTasso.Fisso, 0, 0));
+            foreach (var prodotto in fissiSenzaPricing)
+            {
+                prodotto.CodicePricing = CodicePricingPrecedenti;
+                prodotto.Spread = 0;
+            }
+            db.SaveChanges();
+        }
+
         if (db.Prodotti.Any()) return;
 
         if (!db.Pricing.Any()) db.Pricing.AddRange(PricingEsempio());
@@ -51,6 +67,9 @@ public static class DatiIniziali
     }
 
     private static readonly DateOnly Rilevazione = new(2026, 10, 1);
+
+    /// <summary>Pricing assegnato ai prodotti delle versioni precedenti che non ne avevano uno.</summary>
+    public const string CodicePricingPrecedenti = "TF-PREC";
 
     private static Pricing Pricing(string codice, string descrizione, TipoTasso tipo, decimal valore, decimal spread) =>
         new() { Codice = codice, Descrizione = descrizione, TipoTasso = tipo, Valore = valore, Spread = spread, DataRilevazione = Rilevazione };

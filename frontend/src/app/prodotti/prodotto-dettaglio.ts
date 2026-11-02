@@ -42,7 +42,7 @@ export class ProdottoDettaglio {
     descrizione: [''],
     tipologia: ['Mutuo' as TipologiaProdotto, Validators.required],
     tipoTasso: ['Fisso' as TipoTasso, Validators.required],
-    codicePricing: [null as string | null],
+    codicePricing: [null as string | null, Validators.required],
     spread: [null as number | null],
     attivo: [true],
     dataInizioValidita: [oggi(), Validators.required],

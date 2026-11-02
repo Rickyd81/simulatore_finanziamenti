@@ -56,6 +56,7 @@ public class AnagraficaCondizioniTests : IDisposable
             nome = "Prodotto di prova",
             tipologia = "PrestitoPersonale",
             tipoTasso = "Fisso",
+            codicePricing = "TBP",
             finalitaAmmesse = new[] { "Liquidita" },
             importoMinimo = 1_000,
             importoMassimo = 10_000,
@@ -162,7 +163,7 @@ public class AnagraficaCondizioniTests : IDisposable
         var simulazione = await (await client.PostAsJsonAsync("/api/simulazioni",
             new { finalita = "Liquidita", importo = 5_000, durataMesi = 36, etaRichiedente = 40, provincia = "RM" })).Content.ReadFromJsonAsync<JsonElement>();
         var offerta = simulazione.GetProperty("offerte").EnumerateArray().Single(o => o.GetProperty("codice").GetString() == "TEST");
-        Assert.Equal(4.10m, offerta.GetProperty("tan").GetDecimal());
+        Assert.Equal(3.50m + 4.10m, offerta.GetProperty("tan").GetDecimal()); // pricing TBP + spread importato e modificato
     }
 
     [Fact]

@@ -24,8 +24,7 @@ public abstract class DatiCondizione
 
     /// <summary>
     /// Valore della condizione. Per la categoria Tasso è lo spread da sommare al tasso di riferimento
-    /// del pricing del prodotto (sostituisce, per la sua fascia, lo spread importato dal pricing);
-    /// per un prodotto a tasso fisso senza pricing è direttamente il TAN annuo in percentuale.
+    /// del pricing del prodotto (sostituisce, per la sua fascia, lo spread importato dal pricing).
     /// </summary>
     public decimal Valore { get; set; }
 

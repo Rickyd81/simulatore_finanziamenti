@@ -30,14 +30,13 @@ public class MotoreSimulazione
             var tasso = condizioni.FirstOrDefault(c => c.Categoria == CategoriaCondizione.Tasso);
             // Fisso e variabile si calcolano allo stesso modo: TAN = tasso di riferimento del pricing + spread,
             // dove lo spread è quello della condizione di tasso applicabile, se c'è, altrimenti quello
-            // importato dal pricing. Un prodotto fisso senza pricing (versioni precedenti) ha il TAN
-            // direttamente nella condizione di tasso.
-            var valoreTasso = tasso?.Valore ?? (prodotto.CodicePricing is null ? null : prodotto.Spread);
+            // importato dal pricing.
+            var valoreTasso = tasso?.Valore ?? prodotto.Spread;
             decimal? valoreIndice = null;
 
             if (motivi.Count == 0 && valoreTasso is null)
                 motivi.Add("Nessun tasso previsto per l'importo, la durata o l'LTV richiesti");
-            if (motivi.Count == 0 && (prodotto.CodicePricing is not null || prodotto.TipoTasso == TipoTasso.Variabile))
+            if (motivi.Count == 0)
             {
                 if (prodotto.CodicePricing is { } codice && valoriIndici.TryGetValue(codice, out var v)) valoreIndice = v;
                 else motivi.Add("Pricing del tasso non configurato");

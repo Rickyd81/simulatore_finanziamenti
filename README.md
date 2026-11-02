@@ -21,8 +21,9 @@ economiche.
   fisso (es. IRS 20 anni, tasso base prestiti) o variabile (es. Euribor 3 mesi). Il prodotto
   richiama solo i pricing del suo tipo di tasso e ne importa lo spread come copia modificabile;
   le condizioni di tasso del prodotto, se applicabili, lo sostituiscono per la loro fascia (es.
-  uno spread diverso per LTV). Il pricing è obbligatorio per il variabile; un fisso senza pricing
-  (prodotti delle versioni precedenti) ha il TAN direttamente nelle condizioni di tasso.
+  uno spread diverso per LTV). Il pricing è obbligatorio per ogni prodotto; i prodotti fissi delle
+  versioni precedenti ricevono il pricing TF-PREC (tasso e spread a zero), così il loro TAN resta
+  quello indicato nelle condizioni di tasso.
 
 L'indagine sui simulatori esistenti da cui nascono queste scelte è in
 [docs/indagine-simulatori.md](docs/indagine-simulatori.md).

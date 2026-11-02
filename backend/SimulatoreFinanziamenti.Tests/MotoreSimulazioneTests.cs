@@ -163,6 +163,8 @@ public class MotoreSimulazioneTests : IDisposable
             Nome = "Mutuo Liquidità",
             Tipologia = TipologiaProdotto.Mutuo,
             TipoTasso = TipoTasso.Fisso,
+            CodicePricing = "IRS20",
+            Spread = 1.5m,
             FinalitaAmmesse = [Finalita.Liquidita],
             ImportoMinimo = 10_000,
             ImportoMassimo = 300_000,

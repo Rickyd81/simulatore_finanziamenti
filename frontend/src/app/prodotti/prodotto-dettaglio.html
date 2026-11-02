@@ -74,16 +74,10 @@
                 }
               </select>
             </div>
-            <div class="campo">
-              <label for="pricing">Pricing{{ tipoTasso() === 'Variabile' ? ' *' : '' }}</label>
+            <div class="campo" [class.non-valido]="nonValido('codicePricing')">
+              <label for="pricing">Pricing *</label>
               <select id="pricing" formControlName="codicePricing" (change)="importaSpread()">
-                <option [ngValue]="null">
-                  {{
-                    tipoTasso() === 'Variabile'
-                      ? "Seleziona un'opzione"
-                      : 'Nessuno: TAN nelle condizioni'
-                  }}
-                </option>
+                <option [ngValue]="null">Seleziona un'opzione</option>
                 @for (p of pricingProponibili(); track p.codice) {
                   <option [value]="p.codice">{{ p.descrizione }} ({{ p.codice }})</option>
                 }

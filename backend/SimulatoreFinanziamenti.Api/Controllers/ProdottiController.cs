@@ -163,14 +163,7 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
         if (p.DataFineValidita < p.DataInizioValidita)
             ModelState.AddModelError(nameof(p.DataFineValidita), "La data di fine validità precede quella di inizio");
         if (string.IsNullOrWhiteSpace(p.CodicePricing))
-        {
-            // Senza pricing (ammesso solo per il fisso, come nei prodotti delle versioni precedenti)
-            // le condizioni di tasso indicano direttamente il TAN.
-            p.CodicePricing = null;
-            p.Spread = null;
-            if (p.TipoTasso == TipoTasso.Variabile)
-                ModelState.AddModelError(nameof(p.CodicePricing), "Un prodotto a tasso variabile richiede un pricing");
-        }
+            ModelState.AddModelError(nameof(p.CodicePricing), "Indicare il pricing del prodotto");
         else
         {
             p.CodicePricing = p.CodicePricing.Trim().ToUpperInvariant();

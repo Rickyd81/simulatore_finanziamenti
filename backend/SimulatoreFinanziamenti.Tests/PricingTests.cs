@@ -120,6 +120,12 @@ public class PricingTests : IDisposable
     }
 
     [Fact]
+    public async Task Prodotto_RichiedeIlPricingAncheATassoFisso()
+    {
+        Assert.Equal(HttpStatusCode.BadRequest, (await NuovoProdotto(await ClientBanca(), "Fisso", null)).StatusCode);
+    }
+
+    [Fact]
     public async Task Prodotto_NonAccettaUnPricingDiAltroTipoDiTasso()
     {
         var client = await ClientBanca();
@@ -216,6 +222,7 @@ public class PricingTests : IDisposable
                 ALTER TABLE Indici DROP COLUMN Spread;
                 ALTER TABLE Indici DROP COLUMN TipoTasso;
                 ALTER TABLE Prodotti DROP COLUMN Spread;
+                UPDATE Prodotti SET IndiceRiferimento = NULL WHERE TipoTasso = 'Fisso';
                 """;
             comando.ExecuteNonQuery();
         }
@@ -237,5 +244,11 @@ public class PricingTests : IDisposable
         var prodotti = (await client.GetFromJsonAsync<JsonElement>("/api/prodotti")).EnumerateArray().ToList();
         var variabile = prodotti.Single(p => p.GetProperty("codice").GetString() == "MUT-VAR");
         Assert.Equal("EUR3M", variabile.GetProperty("codicePricing").GetString());
+
+        // I prodotti fissi senza pricing ricevono il pricing a zero: il TAN resta quello delle condizioni.
+        var fisso = prodotti.Single(p => p.GetProperty("codice").GetString() == "MUT-FIX");
+        Assert.Equal("TF-PREC", fisso.GetProperty("codicePricing").GetString());
+        Assert.Equal(0m, fisso.GetProperty("spread").GetDecimal());
+        Assert.Equal("Fisso", PerCodice(await Pricing(client), "TF-PREC").GetProperty("tipoTasso").GetString());
     }
 }
