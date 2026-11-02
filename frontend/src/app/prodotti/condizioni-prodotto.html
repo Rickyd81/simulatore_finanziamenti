@@ -90,9 +90,9 @@
 </div>
 <div class="sotto-tabella">
   <span class="tenue">
-    @if (tipoTasso() === 'Variabile') {
-      Prodotto a tasso variabile: il valore delle condizioni di tasso è lo spread sull'indice del
-      pricing e, dove applicabile, sostituisce lo spread importato dal pricing.
+    @if (conPricing()) {
+      Il valore delle condizioni di tasso è lo spread sul tasso di riferimento del pricing e, dove
+      applicabile, sostituisce lo spread importato dal pricing.
     } @else {
       Se più condizioni di tasso sono applicabili, vale la prima in ordine di codice.
     }
@@ -103,7 +103,7 @@
 @if (importazione()) {
   <app-importa-condizioni
     [codiciPresenti]="codici()"
-    [tipoTasso]="tipoTasso()"
+    [conPricing]="conPricing()"
     (importa)="importa($event)"
     (annulla)="importazione.set(false)"
   />
@@ -112,7 +112,7 @@
 @if (inModifica(); as m) {
   <app-editor-condizione
     [condizione]="m"
-    [tipoTasso]="tipoTasso()"
+    [conPricing]="conPricing()"
     [nota]="nota(m)"
     (salva)="salva($event)"
     (annulla)="chiudi()"

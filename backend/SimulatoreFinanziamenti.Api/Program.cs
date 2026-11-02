@@ -79,7 +79,7 @@ using (var scope = app.Services.CreateScope())
     var novita = AggiornamentoSchema.Applica(db);
     DatiIniziali.Carica(db,
         caricaAnagrafica: databaseNuovo || novita.Contains(nameof(SimulatoreDbContext.CondizioniAnagrafica)),
-        caricaPricing: novita.Contains("Indici.Spread"));
+        caricaPricing: novita.Contains("Indici.Spread") || novita.Contains("Indici.TipoTasso"));
 }
 
 app.UseForwardedHeaders();

@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, input, model, signal } from '@angular/core';
 import { Api, messaggioErrore } from '../core/api';
 import { DecodificaPipe } from '../core/decodifica';
-import { Condizione, TipoTasso } from '../core/models';
+import { Condizione } from '../core/models';
 import {
   CondizioneEditabile,
   EditorCondizione,
@@ -27,7 +27,8 @@ export class CondizioniProdotto {
   private readonly api = inject(Api);
 
   readonly prodottoId = input.required<number>();
-  readonly tipoTasso = input.required<TipoTasso>();
+  /** Il prodotto richiama un pricing: le condizioni di tasso sono spread sul tasso di riferimento. */
+  readonly conPricing = input.required<boolean>();
   readonly condizioni = model.required<Condizione[]>();
 
   protected readonly stato = new StatoTabella<Condizione>(this.condizioni);

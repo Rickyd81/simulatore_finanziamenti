@@ -47,9 +47,9 @@ export interface Prodotto {
   descrizione: string | null;
   tipologia: TipologiaProdotto;
   tipoTasso: TipoTasso;
-  /** Codice del pricing richiamato, solo per i prodotti a tasso variabile. */
+  /** Codice del pricing richiamato, dello stesso tipo di tasso; obbligatorio per il variabile. */
   codicePricing: string | null;
-  /** Spread importato dal pricing (copia modificabile), solo per i prodotti a tasso variabile. */
+  /** Spread importato dal pricing (copia modificabile); null se il prodotto non richiama un pricing. */
   spread: number | null;
   finalitaAmmesse: Finalita[];
   importoMinimo: number;
@@ -101,11 +101,13 @@ export interface CondizioneAnagrafica extends DatiCondizione {
   gruppo: string | null;
 }
 
-/** Pricing dell'anagrafica pricing: indice di riferimento per i tassi variabili e spread. */
+/** Pricing dell'anagrafica pricing: tasso di riferimento e spread, per tipo di tasso. */
 export interface Pricing {
   codice: string;
   descrizione: string;
-  /** Valore dell'indice in percentuale. */
+  /** Tipo di tasso dei prodotti che lo possono richiamare; null solo per i dati delle versioni precedenti. */
+  tipoTasso: TipoTasso | null;
+  /** Tasso di riferimento in percentuale: indice (es. Euribor) per il variabile, tasso base (es. IRS) per il fisso. */
   valore: number;
   dataRilevazione: string;
   /** Spread in percentuale; null solo per i pricing creati prima dell'introduzione dello spread. */

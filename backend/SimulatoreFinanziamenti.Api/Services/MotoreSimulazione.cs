@@ -28,20 +28,18 @@ public class MotoreSimulazione
             var motivi = VerificaRequisiti(prodotto, richiesta, ltv, decorrenza);
             var condizioni = prodotto.Condizioni.Where(c => Applicabile(c, richiesta, ltv, decorrenza)).OrderBy(c => c.Codice).ToList();
             var tasso = condizioni.FirstOrDefault(c => c.Categoria == CategoriaCondizione.Tasso);
-            var variabile = prodotto.TipoTasso == TipoTasso.Variabile;
-            // Tasso fisso: il TAN è la condizione di tasso. Tasso variabile: lo spread è quello della
-            // condizione di tasso applicabile, se c'è, altrimenti quello importato dal pricing.
-            var valoreTasso = tasso?.Valore ?? (variabile ? prodotto.Spread : null);
+            // Fisso e variabile si calcolano allo stesso modo: TAN = tasso di riferimento del pricing + spread,
+            // dove lo spread è quello della condizione di tasso applicabile, se c'è, altrimenti quello
+            // importato dal pricing.
+            var valoreTasso = tasso?.Valore ?? prodotto.Spread;
             decimal? valoreIndice = null;
 
             if (motivi.Count == 0 && valoreTasso is null)
-                motivi.Add(variabile
-                    ? "Nessuno spread previsto per l'importo, la durata o l'LTV richiesti"
-                    : "Nessun tasso previsto per l'importo, la durata o l'LTV richiesti");
-            if (motivi.Count == 0 && variabile)
+                motivi.Add("Nessun tasso previsto per l'importo, la durata o l'LTV richiesti");
+            if (motivi.Count == 0)
             {
                 if (prodotto.CodicePricing is { } codice && valoriIndici.TryGetValue(codice, out var v)) valoreIndice = v;
-                else motivi.Add("Pricing del tasso variabile non configurato");
+                else motivi.Add("Pricing del tasso non configurato");
             }
 
             if (motivi.Count > 0)
@@ -150,9 +148,9 @@ public class MotoreSimulazione
             Descrizione = p.Descrizione,
             Tipologia = p.Tipologia,
             TipoTasso = p.TipoTasso,
-            IndiceRiferimento = p.TipoTasso == TipoTasso.Variabile ? p.CodicePricing : null,
+            IndiceRiferimento = valoreIndice is null ? null : p.CodicePricing,
             ValoreIndice = valoreIndice,
-            Spread = p.TipoTasso == TipoTasso.Variabile ? valoreTasso : null,
+            Spread = valoreIndice is null ? null : valoreTasso,
             Tan = tan,
             Taeg = Taeg(r.Importo - costiIniziali, pagamentiTaeg),
             Rata = piano[0].Rata,

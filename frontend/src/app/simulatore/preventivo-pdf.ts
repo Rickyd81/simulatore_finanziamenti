@@ -149,7 +149,7 @@ export async function scaricaPreventivoPdf(dati: DatiPreventivo): Promise<void> 
 
   // Condizioni economiche
   let tasso = decodifica('tipiTasso', o.tipoTasso);
-  if (o.tipoTasso === 'Variabile' && o.valoreIndice !== null && o.spread !== null) {
+  if (o.valoreIndice !== null && o.spread !== null) {
     tasso += ` (${o.indiceRiferimento} ${numero(o.valoreIndice)}% + spread ${numero(o.spread)}%)`;
   }
   autoTable(doc, {

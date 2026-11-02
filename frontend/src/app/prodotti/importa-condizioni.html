@@ -19,9 +19,9 @@
         <span class="tenue">
           Le condizioni importate sono una copia: puoi modificarle sul prodotto senza cambiare
           l'anagrafica.
-          @if (tipoTasso() === 'Variabile') {
-            Per questo prodotto il valore delle condizioni di tasso è lo spread sull'indice del
-            pricing.
+          @if (conPricing()) {
+            Per questo prodotto il valore delle condizioni di tasso è lo spread sul tasso di
+            riferimento del pricing.
           }
         </span>
       </div>

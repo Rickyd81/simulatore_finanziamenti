@@ -10,7 +10,7 @@ public static class DatiIniziali
     /// <summary>
     /// Carica il catalogo di esempio su un database vuoto. Con <paramref name="caricaAnagrafica"/> carica
     /// l'anagrafica condizioni (tabella appena creata), con <paramref name="caricaPricing"/> completa
-    /// l'anagrafica pricing (spread appena introdotto).
+    /// l'anagrafica pricing (spread o tipo di tasso appena introdotti).
     /// </summary>
     public static void Carica(SimulatoreDbContext db, bool caricaAnagrafica = false, bool caricaPricing = false)
     {
@@ -22,16 +22,35 @@ public static class DatiIniziali
             db.SaveChanges();
         }
 
-        // Quando lo spread entra nell'anagrafica pricing (database delle versioni precedenti, che avevano
-        // solo gli indici di riferimento) si aggiungono i pricing di esempio mancanti e si completa lo
-        // spread di quelli esistenti con lo stesso codice. Gli altri pricing non si toccano.
+        // Quando spread o tipo di tasso entrano nell'anagrafica pricing (database delle versioni precedenti)
+        // si aggiungono i pricing di esempio mancanti e si completano quelli esistenti con lo stesso codice.
+        // I pricing senza tipo di tasso erano gli indici dei prodotti variabili: restano variabili.
         if (caricaPricing)
         {
-            foreach (var esempio in PricingEsempio())
+            var esempi = PricingEsempio();
+            foreach (var esempio in esempi)
             {
                 var esistente = db.Pricing.Find(esempio.Codice);
                 if (esistente is null) db.Pricing.Add(esempio);
                 else esistente.Spread ??= esempio.Spread;
+            }
+            foreach (var pricing in db.Pricing.Where(p => p.TipoTasso == null).ToList())
+                pricing.TipoTasso = TipoTasso.Variabile;
+            db.SaveChanges();
+        }
+
+        // Il pricing è obbligatorio per tutti i prodotti. I prodotti a tasso fisso delle versioni precedenti
+        // avevano il TAN direttamente nelle condizioni di tasso: richiamano un pricing con tasso di riferimento
+        // e spread a zero, così il TAN (0 + condizione di tasso) resta quello di prima.
+        var fissiSenzaPricing = db.Prodotti.Where(p => p.CodicePricing == null).ToList();
+        if (fissiSenzaPricing.Count > 0)
+        {
+            if (db.Pricing.Find(CodicePricingPrecedenti) is null)
+                db.Pricing.Add(Pricing(CodicePricingPrecedenti, "Tasso fisso dei prodotti precedenti: TAN nelle condizioni di tasso", TipoTasso.Fisso, 0, 0));
+            foreach (var prodotto in fissiSenzaPricing)
+            {
+                prodotto.CodicePricing = CodicePricingPrecedenti;
+                prodotto.Spread = 0;
             }
             db.SaveChanges();
         }
@@ -49,20 +68,41 @@ public static class DatiIniziali
 
     private static readonly DateOnly Rilevazione = new(2026, 10, 1);
 
+    /// <summary>Pricing assegnato ai prodotti delle versioni precedenti che non ne avevano uno.</summary>
+    public const string CodicePricingPrecedenti = "TF-PREC";
+
+    private static Pricing Pricing(string codice, string descrizione, TipoTasso tipo, decimal valore, decimal spread) =>
+        new() { Codice = codice, Descrizione = descrizione, TipoTasso = tipo, Valore = valore, Spread = spread, DataRilevazione = Rilevazione };
+
     private static List<Pricing> PricingEsempio() =>
     [
-        new() { Codice = "EUR1M", Descrizione = "Euribor 1 mese", Valore = 1.95m, Spread = 1.40m, DataRilevazione = Rilevazione },
-        new() { Codice = "EUR3M", Descrizione = "Euribor 3 mesi", Valore = 2.05m, Spread = 1.20m, DataRilevazione = Rilevazione },
-        new() { Codice = "EUR6M", Descrizione = "Euribor 6 mesi", Valore = 2.12m, Spread = 1.10m, DataRilevazione = Rilevazione },
-        new() { Codice = "EUR3M-GIO", Descrizione = "Euribor 3 mesi, spread agevolato giovani", Valore = 2.05m, Spread = 0.85m, DataRilevazione = Rilevazione },
-        new() { Codice = "BCE", Descrizione = "Tasso BCE operazioni di rifinanziamento principali", Valore = 2.15m, Spread = 3.50m, DataRilevazione = Rilevazione }
+        // Tasso fisso: tasso base (IRS della durata o tasso base dei prestiti) + spread.
+        Pricing("IRS10", "IRS 10 anni", TipoTasso.Fisso, 2.30m, 0.90m),
+        Pricing("IRS20", "IRS 20 anni", TipoTasso.Fisso, 2.45m, 0.95m),
+        Pricing("IRS20-GIO", "IRS 20 anni, spread agevolato giovani", TipoTasso.Fisso, 2.45m, 0.35m),
+        Pricing("IRS30", "IRS 30 anni", TipoTasso.Fisso, 2.50m, 0.90m),
+        Pricing("TBP", "Tasso base prestiti personali", TipoTasso.Fisso, 3.50m, 3.40m),
+        Pricing("TBP-GREEN", "Tasso base prestiti, spread green", TipoTasso.Fisso, 3.50m, 2.00m),
+        // Tasso variabile: indice di mercato + spread.
+        Pricing("EUR1M", "Euribor 1 mese", TipoTasso.Variabile, 1.95m, 1.40m),
+        Pricing("EUR3M", "Euribor 3 mesi", TipoTasso.Variabile, 2.05m, 1.20m),
+        Pricing("EUR6M", "Euribor 6 mesi", TipoTasso.Variabile, 2.12m, 1.10m),
+        Pricing("EUR3M-GIO", "Euribor 3 mesi, spread agevolato giovani", TipoTasso.Variabile, 2.05m, 0.85m),
+        Pricing("BCE", "Tasso BCE operazioni di rifinanziamento principali", TipoTasso.Variabile, 2.15m, 3.50m)
     ];
+
+    /// <summary>Richiama un pricing di esempio nel prodotto, importandone lo spread (eventualmente modificato).</summary>
+    private static void RichiamaPricing(Prodotto p, string codice, decimal? spread = null)
+    {
+        p.CodicePricing = codice;
+        p.Spread = spread ?? PricingEsempio().Single(x => x.Codice == codice).Spread;
+    }
 
     private static IEnumerable<CondizioneAnagrafica> AnagraficaCondizioni() =>
     [
         .. CostiMutuo().Select(c => InAnagrafica(c, "Costi mutuo")),
         .. CostiPrestito(istruttoria: 150, incasso: 1.5m).Select(c => InAnagrafica(c, "Costi prestito", c.Codice == "BOL" ? "BOL" : c.Codice + "-PRE")),
-        .. MutuoFisso().Condizioni.Where(c => c.Categoria == CategoriaCondizione.Tasso).Select(c => InAnagrafica(c, "Tassi mutuo fisso per durata e LTV", "MF-" + c.Codice))
+        .. MutuoFisso().Condizioni.Where(c => c.Categoria == CategoriaCondizione.Tasso).Select(c => InAnagrafica(c, "Spread mutuo fisso per durata e LTV", "MF-" + c.Codice))
     ];
 
     private static CondizioneAnagrafica InAnagrafica(Condizione c, string gruppo, string? codice = null)
@@ -73,25 +113,29 @@ public static class DatiIniziali
         return a;
     }
 
-    private static Prodotto Mutuo(string codice, string nome, string descrizione, TipoTasso tipoTasso, params Finalita[] finalita) => new()
+    private static Prodotto Mutuo(string codice, string nome, string descrizione, TipoTasso tipoTasso, params Finalita[] finalita)
     {
-        Codice = codice,
-        Nome = nome,
-        Descrizione = descrizione,
-        Tipologia = TipologiaProdotto.Mutuo,
-        TipoTasso = tipoTasso,
-        CodicePricing = tipoTasso == TipoTasso.Variabile ? "EUR3M" : null,
-        Spread = tipoTasso == TipoTasso.Variabile ? 1.20m : null,
-        FinalitaAmmesse = [.. finalita],
-        ImportoMinimo = 50_000,
-        ImportoMassimo = 1_000_000,
-        DurataMinimaMesi = 60,
-        DurataMassimaMesi = 360,
-        EtaMinima = 18,
-        EtaMassimaFineFinanziamento = 80,
-        LtvMassimo = 80,
-        DataInizioValidita = Inizio
-    };
+        var p = new Prodotto
+        {
+            Codice = codice,
+            Nome = nome,
+            Descrizione = descrizione,
+            Tipologia = TipologiaProdotto.Mutuo,
+            TipoTasso = tipoTasso,
+            FinalitaAmmesse = [.. finalita],
+            ImportoMinimo = 50_000,
+            ImportoMassimo = 1_000_000,
+            DurataMinimaMesi = 60,
+            DurataMassimaMesi = 360,
+            EtaMinima = 18,
+            EtaMassimaFineFinanziamento = 80,
+            LtvMassimo = 80,
+            DataInizioValidita = Inizio
+        };
+        // Pricing predefinito: IRS 20 anni per il fisso, Euribor 3 mesi per il variabile.
+        RichiamaPricing(p, tipoTasso == TipoTasso.Fisso ? "IRS20" : "EUR3M");
+        return p;
+    }
 
     private static List<Condizione> CostiMutuo(decimal istruttoria = 1m) =>
     [
@@ -126,10 +170,11 @@ public static class DatiIniziali
             TipoTasso.Fisso, Finalita.AcquistoPrimaCasa, Finalita.AcquistoSecondaCasa, Finalita.Surroga);
         p.Condizioni =
         [
-            Tasso("TAN1", "TAN fisso fino a 20 anni, LTV fino al 60%", 2.95m, durataA: 240, ltvA: 60),
-            Tasso("TAN2", "TAN fisso fino a 20 anni, LTV oltre il 60%", 3.15m, durataA: 240, ltvDa: 60),
-            Tasso("TAN3", "TAN fisso oltre 20 anni, LTV fino al 60%", 3.20m, durataDa: 241, ltvA: 60),
-            Tasso("TAN4", "TAN fisso oltre 20 anni, LTV oltre il 60%", 3.40m, durataDa: 241, ltvDa: 60),
+            // Spread sul pricing IRS20 (2,45%) per fascia: TAN dal 2,95% al 3,40%.
+            Tasso("SPR1", "Spread fino a 20 anni, LTV fino al 60%", 0.50m, durataA: 240, ltvA: 60),
+            Tasso("SPR2", "Spread fino a 20 anni, LTV oltre il 60%", 0.70m, durataA: 240, ltvDa: 60),
+            Tasso("SPR3", "Spread oltre 20 anni, LTV fino al 60%", 0.75m, durataDa: 241, ltvA: 60),
+            Tasso("SPR4", "Spread oltre 20 anni, LTV oltre il 60%", 0.95m, durataDa: 241, ltvDa: 60),
             .. CostiMutuo()
         ];
         return p;
@@ -155,9 +200,9 @@ public static class DatiIniziali
         p.EtaMassimaRichiedente = 35;
         p.LtvMassimo = 100;
         p.ImportoMassimo = 400_000;
+        RichiamaPricing(p, "IRS20-GIO");
         p.Condizioni =
         [
-            Tasso("TAN1", "TAN fisso agevolato giovani", 2.80m),
             .. CostiMutuo(istruttoria: 0).Where(c => c.Categoria != CategoriaCondizione.SpesaIstruttoria)
         ];
         return p;
@@ -169,9 +214,10 @@ public static class DatiIniziali
             TipoTasso.Fisso, Finalita.AcquistoPrimaCasa, Finalita.Surroga);
         p.ProvinceAmmesse = ["BG", "BS", "CO", "CR", "LC", "LO", "MN", "MI", "MB", "PV", "SO", "VA"];
         p.LtvMassimo = 70;
+        // Pricing IRS20 con lo spread importato ridotto sul prodotto (0,30% invece di 0,95%).
+        RichiamaPricing(p, "IRS20", spread: 0.30m);
         p.Condizioni =
         [
-            Tasso("TAN1", "TAN fisso territorio", 2.75m),
             .. CostiMutuo()
         ];
         return p;
@@ -201,10 +247,12 @@ public static class DatiIniziali
         EtaMinima = 18,
         EtaMassimaFineFinanziamento = 75,
         DataInizioValidita = Inizio,
+        CodicePricing = "TBP",
+        Spread = 3.40m,
         Condizioni =
         [
-            Tasso("TAN1", "TAN fisso importi fino a 15.000 €", 7.90m, importoA: 15_000),
-            Tasso("TAN2", "TAN fisso importi oltre 15.000 €", 6.90m, importoDa: 15_000.01m),
+            // Fino a 15.000 € lo spread sale al 4,40% (TAN 7,90%); oltre vale quello del pricing (TAN 6,90%).
+            Tasso("SPR1", "Spread importi fino a 15.000 €", 4.40m, importoA: 15_000),
             .. CostiPrestito(istruttoria: 150, incasso: 1.5m)
         ]
     };
@@ -224,9 +272,11 @@ public static class DatiIniziali
         EtaMinima = 18,
         EtaMassimaFineFinanziamento = 75,
         DataInizioValidita = Inizio,
+        // Pricing TBP con lo spread importato ridotto sul prodotto: TAN 5,90%.
+        CodicePricing = "TBP",
+        Spread = 2.40m,
         Condizioni =
         [
-            Tasso("TAN1", "TAN fisso", 5.90m),
             .. CostiPrestito(istruttoria: 100, incasso: 1m)
         ]
     };
@@ -246,9 +296,10 @@ public static class DatiIniziali
         EtaMinima = 18,
         EtaMassimaFineFinanziamento = 75,
         DataInizioValidita = Inizio,
+        CodicePricing = "TBP-GREEN",
+        Spread = 2.00m,
         Condizioni =
         [
-            Tasso("TAN1", "TAN fisso green", 5.50m),
             .. CostiPrestito(istruttoria: 0, incasso: 1m)
         ]
     };

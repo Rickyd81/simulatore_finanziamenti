@@ -42,7 +42,7 @@ export class ProdottoDettaglio {
     descrizione: [''],
     tipologia: ['Mutuo' as TipologiaProdotto, Validators.required],
     tipoTasso: ['Fisso' as TipoTasso, Validators.required],
-    codicePricing: [null as string | null],
+    codicePricing: [null as string | null, Validators.required],
     spread: [null as number | null],
     attivo: [true],
     dataInizioValidita: [oggi(), Validators.required],
@@ -88,7 +88,12 @@ export class ProdottoDettaglio {
     });
   }
 
-  /** Pricing richiamato nel form, per mostrarne indice e spread di riferimento. */
+  /** Pricing proponibili: solo quelli del tipo di tasso del prodotto. */
+  protected readonly pricingProponibili = computed(() =>
+    this.pricing().filter((p) => p.tipoTasso === this.tipoTasso()),
+  );
+
+  /** Pricing richiamato nel form, per mostrarne tasso di riferimento e spread. */
   protected readonly pricingScelto = toSignal(this.form.controls.codicePricing.valueChanges, {
     initialValue: this.form.controls.codicePricing.value,
   });
@@ -105,6 +110,15 @@ export class ProdottoDettaglio {
     if (pricing) {
       this.form.controls.spread.setValue(pricing.spread);
       this.form.controls.spread.markAsDirty();
+    }
+  }
+
+  /** Cambiando tipo di tasso, il pricing dell'altro tipo non vale più: si toglie insieme al suo spread. */
+  protected cambiaTipoTasso(): void {
+    const pricing = this.datiPricing();
+    if (pricing && pricing.tipoTasso !== this.form.controls.tipoTasso.value) {
+      this.form.controls.codicePricing.setValue(null);
+      this.form.controls.spread.setValue(null);
     }
   }
 
@@ -145,13 +159,13 @@ export class ProdottoDettaglio {
       return;
     }
     const v = this.form.getRawValue();
-    const variabile = v.tipoTasso === 'Variabile';
+    const codicePricing = v.codicePricing || null;
     const prodotto: Prodotto = {
       ...v,
       id: this.prodottoId(),
       descrizione: v.descrizione || null,
-      codicePricing: variabile ? v.codicePricing : null,
-      spread: variabile ? v.spread : null,
+      codicePricing,
+      spread: codicePricing ? v.spread : null,
       dataFineValidita: v.dataFineValidita || null,
       ltvMassimo: v.tipologia === 'Mutuo' ? v.ltvMassimo : null,
       provinceAmmesse: v.provinceAmmesse

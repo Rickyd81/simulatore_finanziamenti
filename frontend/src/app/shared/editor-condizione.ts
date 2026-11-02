@@ -16,7 +16,6 @@ import {
   DatiCondizione,
   Finalita,
   Periodicita,
-  TipoTasso,
   TipoValore,
 } from '../core/models';
 import { Importo } from './importo';
@@ -62,8 +61,11 @@ export class EditorCondizione {
   private readonly fb = inject(FormBuilder);
 
   readonly condizione = input.required<CondizioneEditabile>();
-  /** Tipo di tasso del prodotto; null nell'anagrafica, dove il valore può essere un TAN o uno spread. */
-  readonly tipoTasso = input<TipoTasso | null>(null);
+  /**
+   * Il prodotto richiama un pricing (valore di tasso = spread) o no (valore = TAN);
+   * null nell'anagrafica, dove il valore può essere l'uno o l'altro.
+   */
+  readonly conPricing = input<boolean | null>(null);
   readonly conGruppo = input(false);
   readonly gruppi = input<string[]>([]);
   readonly nota = input<string | null>(null);
@@ -101,10 +103,10 @@ export class EditorCondizione {
   protected readonly tasso = computed(() => this.categoria() === 'Tasso');
   protected readonly percentuale = computed(() => this.tipoValore() === 'Percentuale');
   protected readonly etichettaTasso = computed(() => {
-    switch (this.tipoTasso()) {
-      case 'Variabile':
+    switch (this.conPricing()) {
+      case true:
         return 'Spread (%)';
-      case 'Fisso':
+      case false:
         return 'TAN (%)';
       default:
         return 'TAN o spread (%)';
