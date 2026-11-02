@@ -288,11 +288,22 @@
         </p>
         <div class="richiedi">
           <span
-            >Ti interessa questa offerta? Invia la richiesta alla banca: ti ricontattiamo noi.</span
+            >Ti interessa questa offerta? Stampa il preventivo in PDF o invia la richiesta alla
+            banca: ti ricontattiamo noi.</span
           >
-          <button type="button" class="btn btn-scuro" (click)="richiestaAperta.set(true)">
-            Richiedi il finanziamento
-          </button>
+          <div class="richiedi-comandi">
+            <button
+              type="button"
+              class="btn"
+              [disabled]="stampaInCorso()"
+              (click)="stampaPreventivo()"
+            >
+              <app-icona nome="pdf" /> {{ stampaInCorso() ? 'Preparazione…' : 'Stampa preventivo' }}
+            </button>
+            <button type="button" class="btn btn-scuro" (click)="richiestaAperta.set(true)">
+              Richiedi il finanziamento
+            </button>
+          </div>
         </div>
       } @else {
         <div class="tabella-contenitore">
