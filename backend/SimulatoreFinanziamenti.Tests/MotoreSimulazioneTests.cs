@@ -30,7 +30,7 @@ public class MotoreSimulazioneTests : IDisposable
     private RisultatoSimulazione Simula(RichiestaSimulazione richiesta)
     {
         var prodotti = _db.Prodotti.Include(p => p.Condizioni).AsNoTracking().ToList();
-        return new MotoreSimulazione().Simula(richiesta with { DataDecorrenza = Decorrenza }, prodotti, _db.Indici.AsNoTracking().ToList());
+        return new MotoreSimulazione().Simula(richiesta with { DataDecorrenza = Decorrenza }, prodotti, _db.Pricing.AsNoTracking().ToList());
     }
 
     private static RichiestaSimulazione MutuoPrimaCasa(int eta = 40, string provincia = "RM") => new()
@@ -65,6 +65,17 @@ public class MotoreSimulazioneTests : IDisposable
         // Il mutuo giovani è escluso per età, il mutuo Lombardia per provincia.
         Assert.Contains(risultato.NonDisponibili, n => n.Nome.Contains("Giovani"));
         Assert.Contains(risultato.NonDisponibili, n => n.Nome.Contains("Lombardia"));
+    }
+
+    [Fact]
+    public void MutuoVariabile_LaCondizioneDiTassoSostituisceLoSpreadDelPricing()
+    {
+        // LTV al 50%: vale lo spread agevolato SPR1 invece di quello importato dal pricing EUR3M.
+        var variabile = Simula(MutuoPrimaCasa() with { Importo = 150_000 }).Offerte.Single(o => o.Codice == "MUT-VAR");
+
+        Assert.Equal("EUR3M", variabile.IndiceRiferimento);
+        Assert.Equal(0.95m, variabile.Spread);
+        Assert.Equal(2.05m + 0.95m, variabile.Tan);
     }
 
     [Fact]

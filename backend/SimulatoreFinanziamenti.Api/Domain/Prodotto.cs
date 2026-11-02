@@ -23,9 +23,16 @@ public class Prodotto
 
     public TipoTasso TipoTasso { get; set; }
 
-    /// <summary>Codice dell'indice di riferimento (es. EUR3M), solo per i prodotti a tasso variabile.</summary>
+    /// <summary>Codice del pricing dell'anagrafica pricing (es. EUR3M), solo per i prodotti a tasso variabile.</summary>
     [MaxLength(20)]
-    public string? IndiceRiferimento { get; set; }
+    public string? CodicePricing { get; set; }
+
+    /// <summary>
+    /// Spread in percentuale sull'indice del pricing, solo per i prodotti a tasso variabile.
+    /// Si importa dal pricing quando lo si richiama ed è una copia modificabile. Le condizioni di
+    /// tasso del prodotto, se applicabili, lo sostituiscono (es. uno spread diverso per fascia di LTV).
+    /// </summary>
+    public decimal? Spread { get; set; }
 
     public List<Finalita> FinalitaAmmesse { get; set; } = [];
 

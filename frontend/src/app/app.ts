@@ -31,7 +31,7 @@ export class App {
   protected readonly banca: VoceMenu[] = [
     { percorso: '/prodotti', etichetta: 'Fabbrica prodotti' },
     { percorso: '/anagrafica-condizioni', etichetta: 'Anagrafica condizioni' },
-    { percorso: '/indici', etichetta: 'Indici di riferimento' },
+    { percorso: '/pricing', etichetta: 'Anagrafica pricing' },
   ];
 
   /** Il titolo della barra in alto è quello della rotta attiva più interna. */

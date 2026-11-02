@@ -23,7 +23,7 @@ public class RichiesteFinanziamentoController(SimulatoreDbContext db, MotoreSimu
     {
         var prodotti = await db.Prodotti.AsNoTracking().Include(p => p.Condizioni)
             .Where(p => p.Id == richiesta.ProdottoId && p.Attivo).ToListAsync(annullamento);
-        var indici = await db.Indici.AsNoTracking().ToListAsync(annullamento);
+        var indici = await db.Pricing.AsNoTracking().ToListAsync(annullamento);
         var simulazione = richiesta.Simulazione with
         {
             DataDecorrenza = richiesta.Simulazione.DataDecorrenza ?? DateOnly.FromDateTime(orologio.GetLocalNow().Date)

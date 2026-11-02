@@ -38,7 +38,7 @@ public class AccessoTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/prodotti")).StatusCode);
 
         await client.DeleteAsync("/api/accesso");
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/indici")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/pricing")).StatusCode);
     }
 
     [Fact]

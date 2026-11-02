@@ -76,15 +76,28 @@
             </div>
             @if (tipoTasso() === 'Variabile') {
               <div class="campo">
-                <label for="indice">Indice di riferimento *</label>
-                <select id="indice" formControlName="indiceRiferimento">
+                <label for="pricing">Pricing *</label>
+                <select id="pricing" formControlName="codicePricing" (change)="importaSpread()">
                   <option [ngValue]="null">Seleziona un'opzione</option>
-                  @for (i of indici(); track i.codice) {
-                    <option [value]="i.codice">{{ i.descrizione }} ({{ i.codice }})</option>
+                  @for (p of pricing(); track p.codice) {
+                    <option [value]="p.codice">{{ p.descrizione }} ({{ p.codice }})</option>
                   }
                 </select>
+                @if (datiPricing(); as p) {
+                  <span class="aiuto"
+                    >Indice {{ p.valore | number: '1.2-4' }}%, spread del pricing
+                    {{
+                      p.spread === null ? 'non indicato' : (p.spread | number: '1.2-4') + '%'
+                    }}.</span
+                  >
+                }
+              </div>
+              <div class="campo">
+                <label for="spread">Spread (%)</label>
+                <input id="spread" type="number" step="0.01" formControlName="spread" />
                 <span class="aiuto"
-                  >Il TAN sarà indice + spread definito nelle condizioni di tasso.</span
+                  >Importato dal pricing, modificabile. Il TAN sarà indice + spread; le condizioni
+                  di tasso del prodotto, se applicabili, sostituiscono lo spread.</span
                 >
               </div>
             }

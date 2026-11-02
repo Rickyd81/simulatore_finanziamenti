@@ -78,6 +78,7 @@ public record ProdottoPratica
     public string Nome { get; init; } = "";
     public TipologiaProdotto Tipologia { get; init; }
     public TipoTasso TipoTasso { get; init; }
+    /// <summary>Codice del pricing (indice di riferimento) dei prodotti a tasso variabile.</summary>
     public string? IndiceRiferimento { get; init; }
     public decimal? ValoreIndice { get; init; }
     public decimal? Spread { get; init; }

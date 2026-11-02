@@ -17,8 +17,10 @@ economiche.
 - **Area banca – Anagrafica condizioni**: condizioni pre-confezionate, raggruppabili (es. "Costi
   mutuo"), da importare nei prodotti invece di inserirle ogni volta. Il prodotto ne riceve una
   copia: modificare o eliminare una condizione in anagrafica non cambia i prodotti già configurati.
-- **Area banca – Indici di riferimento**: valore dell'Euribor e degli altri indici usati dai
-  prodotti a tasso variabile.
+- **Area banca – Anagrafica pricing**: per ogni pricing il valore dell'indice (Euribor o altro)
+  usato dai prodotti a tasso variabile e lo spread proposto. Il prodotto che richiama un pricing
+  ne importa lo spread come copia modificabile; le condizioni di tasso del prodotto, se
+  applicabili, lo sostituiscono per la loro fascia (es. uno spread diverso per LTV).
 
 L'indagine sui simulatori esistenti da cui nascono queste scelte è in
 [docs/indagine-simulatori.md](docs/indagine-simulatori.md).
@@ -65,7 +67,7 @@ cd frontend && npx ng build
 | GET/PUT/DELETE | `/api/prodotti/{id}` | Dettaglio, modifica, eliminazione |
 | GET/POST | `/api/prodotti/{id}/condizioni` | Condizioni del prodotto |
 | PUT/DELETE | `/api/prodotti/{id}/condizioni/{condizioneId}` | Modifica ed eliminazione condizione |
-| GET/PUT/DELETE | `/api/indici[/{codice}]` | Indici di riferimento |
+| GET/PUT/DELETE | `/api/pricing[/{codice}]` | Anagrafica pricing (indice e spread) |
 | GET | `/api/tabelle` | Decodifiche (finalità, categorie, province…) |
 
 La specifica OpenAPI è pubblicata su `/openapi/v1.json`.
@@ -74,7 +76,8 @@ La specifica OpenAPI è pubblicata su `/openapi/v1.json`.
 
 - Ammortamento alla francese con rata mensile costante; l'ultima rata assorbe gli arrotondamenti.
 - TAN: condizione di categoria *Tasso* applicabile (la prima in ordine di codice); per i
-  prodotti variabili è indice + spread, con l'ipotesi che l'indice resti costante.
+  prodotti variabili è indice del pricing + spread (della condizione di tasso applicabile, se c'è,
+  altrimenti quello importato dal pricing), con l'ipotesi che l'indice resti costante.
 - Le condizioni percentuali si calcolano sull'importo finanziato, con eventuali minimo e massimo.
 - Spese mensili addebitate con ogni rata, spese annuali con la prima rata di ogni anno.
 - TAEG: tasso annuo effettivo che eguaglia l'importo erogato al netto dei costi iniziali inclusi
@@ -84,7 +87,7 @@ La specifica OpenAPI è pubblicata su `/openapi/v1.json`.
 
 ## Area banca e password
 
-Fabbrica prodotti e indici richiedono una password, impostata nella configurazione
+Fabbrica prodotti, anagrafiche condizioni e pricing richiedono una password, impostata nella configurazione
 `AreaBanca:Password` (variabile d'ambiente `AreaBanca__Password`). In sviluppo, se la password
 non è impostata, l'area banca è aperta; in produzione senza password resta chiusa.
 

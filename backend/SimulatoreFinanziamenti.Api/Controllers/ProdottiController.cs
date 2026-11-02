@@ -162,9 +162,22 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
             ModelState.AddModelError(nameof(p.DurataMassimaMesi), "La durata massima deve essere maggiore della minima");
         if (p.DataFineValidita < p.DataInizioValidita)
             ModelState.AddModelError(nameof(p.DataFineValidita), "La data di fine validità precede quella di inizio");
-        if (p.TipoTasso == TipoTasso.Variabile && string.IsNullOrWhiteSpace(p.IndiceRiferimento))
-            ModelState.AddModelError(nameof(p.IndiceRiferimento), "Un prodotto a tasso variabile richiede un indice di riferimento");
-        if (p.TipoTasso == TipoTasso.Fisso) p.IndiceRiferimento = null;
+        if (p.TipoTasso == TipoTasso.Fisso)
+        {
+            p.CodicePricing = null;
+            p.Spread = null;
+        }
+        else if (string.IsNullOrWhiteSpace(p.CodicePricing))
+            ModelState.AddModelError(nameof(p.CodicePricing), "Un prodotto a tasso variabile richiede un pricing");
+        else
+        {
+            p.CodicePricing = p.CodicePricing.Trim().ToUpperInvariant();
+            var pricing = await db.Pricing.AsNoTracking().FirstOrDefaultAsync(x => x.Codice == p.CodicePricing);
+            if (pricing is null)
+                ModelState.AddModelError(nameof(p.CodicePricing), "Pricing non presente nell'anagrafica pricing");
+            // Richiamando il pricing se ne importa lo spread, se non è già stato indicato sul prodotto.
+            else p.Spread ??= pricing.Spread;
+        }
         return ModelState.IsValid;
     }
 

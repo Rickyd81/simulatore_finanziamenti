@@ -34,11 +34,13 @@ export const routes: Routes = [
       import('./anagrafica-condizioni/anagrafica-condizioni').then((m) => m.AnagraficaCondizioni),
   },
   {
-    path: 'indici',
+    path: 'pricing',
     canActivate: [areaBancaGuard],
-    data: { titolo: 'Indici di riferimento' },
-    loadComponent: () => import('./indici/indici').then((m) => m.Indici),
+    data: { titolo: 'Anagrafica pricing' },
+    loadComponent: () => import('./pricing/pricing').then((m) => m.AnagraficaPricing),
   },
+  // Indirizzo di quando l'anagrafica pricing si chiamava "Indici di riferimento".
+  { path: 'indici', redirectTo: 'pricing' },
   {
     path: 'accesso',
     data: { titolo: 'Accesso area banca' },

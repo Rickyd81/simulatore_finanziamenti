@@ -5,7 +5,7 @@ import {
   Condizione,
   CondizioneAnagrafica,
   EsitoRichiestaFinanziamento,
-  IndiceRiferimento,
+  Pricing,
   Prodotto,
   RichiestaFinanziamento,
   RichiestaSimulazione,
@@ -73,19 +73,19 @@ export class Api {
     return this.http.delete<void>(`${this.base}/anagrafica-condizioni/${id}`);
   }
 
-  indici(): Observable<IndiceRiferimento[]> {
-    return this.http.get<IndiceRiferimento[]>(`${this.base}/indici`);
+  pricing(): Observable<Pricing[]> {
+    return this.http.get<Pricing[]>(`${this.base}/pricing`);
   }
 
-  salvaIndice(indice: IndiceRiferimento): Observable<IndiceRiferimento> {
-    return this.http.put<IndiceRiferimento>(
-      `${this.base}/indici/${encodeURIComponent(indice.codice)}`,
-      indice,
+  salvaPricing(pricing: Pricing): Observable<Pricing> {
+    return this.http.put<Pricing>(
+      `${this.base}/pricing/${encodeURIComponent(pricing.codice)}`,
+      pricing,
     );
   }
 
-  eliminaIndice(codice: string): Observable<void> {
-    return this.http.delete<void>(`${this.base}/indici/${encodeURIComponent(codice)}`);
+  eliminaPricing(codice: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/pricing/${encodeURIComponent(codice)}`);
   }
 
   simula(richiesta: RichiestaSimulazione): Observable<RisultatoSimulazione> {
