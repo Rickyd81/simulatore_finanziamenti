@@ -1,23 +1,26 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Api, messaggioErrore } from '../core/api';
-import { Pricing } from '../core/models';
+import { Pricing, TipoTasso } from '../core/models';
+import { DecodificaPipe } from '../core/decodifica';
 import { Icona } from '../shared/icona';
 
 /**
- * Anagrafica pricing: valore degli indici di mercato usati dai prodotti a tasso variabile e
- * spread proposto. Il prodotto che richiama un pricing ne importa lo spread come copia.
+ * Anagrafica pricing: tasso di riferimento (IRS per il fisso, Euribor per il variabile) e spread,
+ * per tipo di tasso. Il prodotto che richiama un pricing ne importa lo spread come copia.
  */
 @Component({
   selector: 'app-anagrafica-pricing',
-  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, Icona],
+  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, DecodificaPipe, Icona],
   templateUrl: './pricing.html',
 })
 export class AnagraficaPricing {
   private readonly api = inject(Api);
   private readonly fb = inject(FormBuilder);
 
+  protected readonly tabelle = toSignal(this.api.tabelle$);
   protected readonly elenco = signal<Pricing[]>([]);
   protected readonly errore = signal<string | null>(null);
   protected readonly inModifica = signal<Pricing | null>(null);
@@ -25,6 +28,7 @@ export class AnagraficaPricing {
   protected readonly form = this.fb.nonNullable.group({
     codice: ['', [Validators.required, Validators.maxLength(20)]],
     descrizione: ['', Validators.required],
+    tipoTasso: [null as TipoTasso | null, Validators.required],
     valore: [0, Validators.required],
     spread: [null as number | null, Validators.required],
     dataRilevazione: [new Date().toISOString().slice(0, 10), Validators.required],
@@ -45,6 +49,7 @@ export class AnagraficaPricing {
     const nuovo: Pricing = {
       codice: '',
       descrizione: '',
+      tipoTasso: null,
       valore: 0,
       spread: null,
       dataRilevazione: new Date().toISOString().slice(0, 10),

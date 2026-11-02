@@ -233,7 +233,7 @@
           <div class="campo">
             <span class="etichetta">Tipo di tasso</span>
             {{ o.tipoTasso | decodifica: 'tipiTasso' }}
-            @if (o.tipoTasso === 'Variabile') {
+            @if (o.valoreIndice !== null) {
               <span class="tenue"
                 >{{ o.indiceRiferimento }} {{ o.valoreIndice | number: '1.2-2' }}% + spread
                 {{ o.spread | number: '1.2-2' }}%</span

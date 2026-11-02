@@ -2,9 +2,10 @@
   <div class="pagina-intestazione">
     <button type="button" class="btn btn-scuro" (click)="apri(null)">Nuovo pricing</button>
     <span class="tenue"
-      >Il TAN dei prodotti a tasso variabile è il valore dell'indice più lo spread. Il prodotto che
-      richiama un pricing ne importa lo spread come copia: modificarlo qui non cambia i prodotti già
-      configurati, mentre il valore dell'indice vale per tutti.</span
+      >Il TAN dei prodotti è il tasso di riferimento del pricing più lo spread. Un prodotto può
+      richiamare solo i pricing del suo tipo di tasso e ne importa lo spread come copia: modificarlo
+      qui non cambia i prodotti già configurati, mentre il tasso di riferimento vale per
+      tutti.</span
     >
   </div>
 
@@ -18,7 +19,8 @@
         <tr>
           <th>Codice pricing</th>
           <th>Descrizione</th>
-          <th class="num">Valore indice</th>
+          <th>Tipo tasso</th>
+          <th class="num">Tasso di riferimento</th>
           <th class="num">Spread</th>
           <th>Data rilevazione</th>
           <th class="azioni"></th>
@@ -29,6 +31,7 @@
           <tr [class.selezionata]="inModifica()?.codice === i.codice">
             <td>{{ i.codice }}</td>
             <td>{{ i.descrizione }}</td>
+            <td>{{ i.tipoTasso | decodifica: 'tipiTasso' }}</td>
             <td class="num">{{ i.valore | number: '1.2-4' }} %</td>
             <td class="num">
               @if (i.spread !== null) {
@@ -49,7 +52,7 @@
           </tr>
         } @empty {
           <tr class="vuota">
-            <td colspan="6">Nessun pricing configurato</td>
+            <td colspan="7">Nessun pricing configurato</td>
           </tr>
         }
       </tbody>
@@ -69,8 +72,23 @@
             <label for="iDescrizione">Descrizione *</label>
             <input id="iDescrizione" type="text" formControlName="descrizione" />
           </div>
+          <div
+            class="campo"
+            [class.non-valido]="form.controls.tipoTasso.invalid && form.controls.tipoTasso.touched"
+          >
+            <label for="iTipo">Tipo di tasso *</label>
+            <select id="iTipo" formControlName="tipoTasso">
+              <option [ngValue]="null">Seleziona un'opzione</option>
+              @for (t of tabelle()?.tipiTasso; track t.codice) {
+                <option [value]="t.codice">{{ t.descrizione }}</option>
+              }
+            </select>
+            @if (form.controls.tipoTasso.invalid && form.controls.tipoTasso.touched) {
+              <span class="errore">Il campo è obbligatorio</span>
+            }
+          </div>
           <div class="campo">
-            <label for="iValore">Valore indice (%) *</label>
+            <label for="iValore">Tasso di riferimento (%) *</label>
             <input id="iValore" type="number" step="0.001" formControlName="valore" />
           </div>
           <div

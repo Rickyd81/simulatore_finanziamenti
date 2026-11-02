@@ -162,19 +162,23 @@ public class ProdottiController(SimulatoreDbContext db) : ControllerBase
             ModelState.AddModelError(nameof(p.DurataMassimaMesi), "La durata massima deve essere maggiore della minima");
         if (p.DataFineValidita < p.DataInizioValidita)
             ModelState.AddModelError(nameof(p.DataFineValidita), "La data di fine validità precede quella di inizio");
-        if (p.TipoTasso == TipoTasso.Fisso)
+        if (string.IsNullOrWhiteSpace(p.CodicePricing))
         {
+            // Senza pricing (ammesso solo per il fisso, come nei prodotti delle versioni precedenti)
+            // le condizioni di tasso indicano direttamente il TAN.
             p.CodicePricing = null;
             p.Spread = null;
+            if (p.TipoTasso == TipoTasso.Variabile)
+                ModelState.AddModelError(nameof(p.CodicePricing), "Un prodotto a tasso variabile richiede un pricing");
         }
-        else if (string.IsNullOrWhiteSpace(p.CodicePricing))
-            ModelState.AddModelError(nameof(p.CodicePricing), "Un prodotto a tasso variabile richiede un pricing");
         else
         {
             p.CodicePricing = p.CodicePricing.Trim().ToUpperInvariant();
             var pricing = await db.Pricing.AsNoTracking().FirstOrDefaultAsync(x => x.Codice == p.CodicePricing);
             if (pricing is null)
                 ModelState.AddModelError(nameof(p.CodicePricing), "Pricing non presente nell'anagrafica pricing");
+            else if (pricing.TipoTasso != p.TipoTasso)
+                ModelState.AddModelError(nameof(p.CodicePricing), "Il pricing scelto è di un altro tipo di tasso");
             // Richiamando il pricing se ne importa lo spread, se non è già stato indicato sul prodotto.
             else p.Spread ??= pricing.Spread;
         }

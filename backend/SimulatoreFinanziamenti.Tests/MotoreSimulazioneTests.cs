@@ -53,6 +53,9 @@ public class MotoreSimulazioneTests : IDisposable
 
         var fisso = risultato.Offerte.Single(o => o.Codice == "MUT-FIX");
         Assert.Equal(3.40m, fisso.Tan); // oltre 20 anni e LTV oltre il 60%
+        Assert.Equal("IRS20", fisso.IndiceRiferimento); // pricing fisso: IRS 20 anni 2,45% + spread SPR4 0,95%
+        Assert.Equal(2.45m, fisso.ValoreIndice);
+        Assert.Equal(0.95m, fisso.Spread);
         Assert.True(fisso.Taeg > fisso.Tan);
         Assert.Contains(fisso.Costi, c => c.Codice == "IMP1" && c.Importo == 500m);
         Assert.DoesNotContain(fisso.Costi, c => c.Codice == "IMP2");
@@ -76,6 +79,19 @@ public class MotoreSimulazioneTests : IDisposable
         Assert.Equal("EUR3M", variabile.IndiceRiferimento);
         Assert.Equal(0.95m, variabile.Spread);
         Assert.Equal(2.05m + 0.95m, variabile.Tan);
+    }
+
+    [Fact]
+    public void ProdottiFissi_TanDaPricingPiuSpreadImportatoOModificato()
+    {
+        decimal Tan(RichiestaSimulazione r, string codice) => Simula(r).Offerte.Single(o => o.Codice == codice).Tan;
+
+        Assert.Equal(2.80m, Tan(MutuoPrimaCasa(eta: 30, provincia: "MI") with { Importo = 200_000 }, "MUT-GIO")); // IRS20-GIO
+        Assert.Equal(2.75m, Tan(MutuoPrimaCasa(provincia: "MI") with { Importo = 150_000 }, "MUT-LOM")); // IRS20 con spread 0,30%
+        var auto = new RichiestaSimulazione { Finalita = Finalita.Auto, Importo = 20_000, DurataMesi = 60, EtaRichiedente = 40 };
+        Assert.Equal(5.90m, Tan(auto, "PRE-AUTO")); // TBP con spread 2,40%
+        var green = auto with { Finalita = Finalita.Ristrutturazione };
+        Assert.Equal(5.50m, Tan(green, "PRE-GREEN")); // TBP-GREEN
     }
 
     [Fact]

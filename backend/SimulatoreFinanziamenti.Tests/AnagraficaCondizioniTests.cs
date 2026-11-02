@@ -89,7 +89,7 @@ public class AnagraficaCondizioniTests : IDisposable
         var elenco = await Anagrafica(await ClientBanca());
 
         Assert.Contains(elenco, c => c.GetProperty("codice").GetString() == "IST" && c.GetProperty("gruppo").GetString() == "Costi mutuo");
-        Assert.Contains(elenco, c => c.GetProperty("codice").GetString() == "MF-TAN1" && c.GetProperty("categoria").GetString() == "Tasso");
+        Assert.Contains(elenco, c => c.GetProperty("codice").GetString() == "MF-SPR1" && c.GetProperty("categoria").GetString() == "Tasso");
     }
 
     [Fact]
@@ -134,14 +134,14 @@ public class AnagraficaCondizioniTests : IDisposable
         var anagrafica = await Anagrafica(client);
 
         var risposta = await client.PostAsJsonAsync($"/api/prodotti/{prodotto}/condizioni/importa",
-            new { condizioniAnagrafica = new[] { Id(anagrafica, "MF-TAN1"), Id(anagrafica, "IST-PRE"), Id(anagrafica, "BOL") } });
+            new { condizioniAnagrafica = new[] { Id(anagrafica, "MF-SPR1"), Id(anagrafica, "IST-PRE"), Id(anagrafica, "BOL") } });
 
         Assert.Equal(HttpStatusCode.OK, risposta.StatusCode);
         var importate = (await risposta.Content.ReadFromJsonAsync<JsonElement>()).EnumerateArray().ToList();
-        Assert.Equal(["MF-TAN1", "IST-PRE", "BOL"], importate.Select(c => c.GetProperty("codice").GetString()));
+        Assert.Equal(["MF-SPR1", "IST-PRE", "BOL"], importate.Select(c => c.GetProperty("codice").GetString()));
         Assert.All(importate, c => Assert.Equal(c.GetProperty("codice").GetString(), c.GetProperty("codiceAnagrafica").GetString()));
         var tasso = importate[0];
-        Assert.Equal(2.95m, tasso.GetProperty("valore").GetDecimal());
+        Assert.Equal(0.50m, tasso.GetProperty("valore").GetDecimal());
         Assert.Equal(240, tasso.GetProperty("fasciaDurataAMesi").GetInt32());
 
         // La condizione importata si modifica sul prodotto senza toccare l'anagrafica.
@@ -153,10 +153,10 @@ public class AnagraficaCondizioniTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, aggiornata.StatusCode);
         var corpo = await aggiornata.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal(4.10m, corpo.GetProperty("valore").GetDecimal());
-        Assert.Equal("MF-TAN1", corpo.GetProperty("codiceAnagrafica").GetString());
+        Assert.Equal("MF-SPR1", corpo.GetProperty("codiceAnagrafica").GetString());
 
-        var modello = await client.GetFromJsonAsync<JsonElement>($"/api/anagrafica-condizioni/{Id(anagrafica, "MF-TAN1")}");
-        Assert.Equal(2.95m, modello.GetProperty("valore").GetDecimal());
+        var modello = await client.GetFromJsonAsync<JsonElement>($"/api/anagrafica-condizioni/{Id(anagrafica, "MF-SPR1")}");
+        Assert.Equal(0.50m, modello.GetProperty("valore").GetDecimal());
 
         // Il prodotto con le condizioni importate è simulabile.
         var simulazione = await (await client.PostAsJsonAsync("/api/simulazioni",
