@@ -9,7 +9,8 @@ public class SimulatoreDbContext(DbContextOptions<SimulatoreDbContext> options) 
     public DbSet<Prodotto> Prodotti => Set<Prodotto>();
     public DbSet<Condizione> Condizioni => Set<Condizione>();
     public DbSet<CondizioneAnagrafica> CondizioniAnagrafica => Set<CondizioneAnagrafica>();
-    public DbSet<IndiceRiferimento> Indici => Set<IndiceRiferimento>();
+    /// <summary>Anagrafica pricing. La tabella resta "Indici", il nome usato quando si chiamava "indici di riferimento".</summary>
+    public DbSet<Pricing> Pricing => Set<Pricing>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -31,8 +32,12 @@ public class SimulatoreDbContext(DbContextOptions<SimulatoreDbContext> options) 
                 v => string.Join(',', v),
                 v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList(),
                 ListComparer<string>());
+            // La colonna conserva il nome di quando il pricing si chiamava "indice di riferimento".
+            e.Property(p => p.CodicePricing).HasColumnName("IndiceRiferimento");
             e.HasMany(p => p.Condizioni).WithOne(c => c.Prodotto).HasForeignKey(c => c.ProdottoId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        modelBuilder.Entity<Pricing>().ToTable("Indici");
 
         modelBuilder.Entity<Condizione>().HasIndex(c => new { c.ProdottoId, c.Codice }).IsUnique();
         modelBuilder.Entity<CondizioneAnagrafica>().HasIndex(c => c.Codice).IsUnique();

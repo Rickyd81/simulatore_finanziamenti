@@ -39,7 +39,7 @@ senza rileggere il catalogo del simulatore.
 | --- | --- |
 | testata | `versione`, `idRichiesta` (GUID, utile per l'idempotenza), `dataRichiesta`, `canale` |
 | `cliente` | anagrafica e contatti, età, provincia, consenso privacy |
-| `prodotto` | id e codice del prodotto, tipologia, tipo di tasso; per il variabile indice, valore e spread |
+| `prodotto` | id e codice del prodotto, tipologia, tipo di tasso; per il variabile codice del pricing (indice), valore dell'indice e spread applicato |
 | `finanziamento` | finalità, importo, durata, valore immobile e LTV, decorrenza, TAN, TAEG, rata e totali |
 | `costi` | spese, commissioni e imposte con periodicità e inclusione nel TAEG |
 | `pianoAmmortamento` | tutte le rate con quota capitale, interessi, spese e debito residuo |

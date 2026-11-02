@@ -91,7 +91,8 @@
 <div class="sotto-tabella">
   <span class="tenue">
     @if (tipoTasso() === 'Variabile') {
-      Prodotto a tasso variabile: il valore delle condizioni di tasso è lo spread sull'indice.
+      Prodotto a tasso variabile: il valore delle condizioni di tasso è lo spread sull'indice del
+      pricing e, dove applicabile, sostituisce lo spread importato dal pricing.
     } @else {
       Se più condizioni di tasso sono applicabili, vale la prima in ordine di codice.
     }

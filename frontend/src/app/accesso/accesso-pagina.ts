@@ -14,8 +14,8 @@ import { Accesso } from '../core/accesso';
           <div class="sezione-titolo">Accesso all'area banca</div>
           <div class="sezione-corpo">
             <p class="tenue">
-              La fabbrica prodotti e gli indici di riferimento sono riservati agli utenti della
-              banca.
+              La fabbrica prodotti e le anagrafiche condizioni e pricing sono riservate agli utenti
+              della banca.
             </p>
             @if (errore(); as e) {
               <p class="messaggio errore">{{ e }}</p>

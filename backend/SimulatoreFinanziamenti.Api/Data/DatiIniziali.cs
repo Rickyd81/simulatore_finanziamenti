@@ -7,7 +7,12 @@ public static class DatiIniziali
 {
     private static readonly DateOnly Inizio = new(2026, 1, 1);
 
-    public static void Carica(SimulatoreDbContext db, bool caricaAnagrafica = false)
+    /// <summary>
+    /// Carica il catalogo di esempio su un database vuoto. Con <paramref name="caricaAnagrafica"/> carica
+    /// l'anagrafica condizioni (tabella appena creata), con <paramref name="caricaPricing"/> completa
+    /// l'anagrafica pricing (spread appena introdotto).
+    /// </summary>
+    public static void Carica(SimulatoreDbContext db, bool caricaAnagrafica = false, bool caricaPricing = false)
     {
         // L'anagrafica di esempio si carica solo quando la tabella è appena stata creata,
         // così chi la svuota volutamente non se la ritrova al riavvio.
@@ -17,9 +22,23 @@ public static class DatiIniziali
             db.SaveChanges();
         }
 
+        // Quando lo spread entra nell'anagrafica pricing (database delle versioni precedenti, che avevano
+        // solo gli indici di riferimento) si aggiungono i pricing di esempio mancanti e si completa lo
+        // spread di quelli esistenti con lo stesso codice. Gli altri pricing non si toccano.
+        if (caricaPricing)
+        {
+            foreach (var esempio in PricingEsempio())
+            {
+                var esistente = db.Pricing.Find(esempio.Codice);
+                if (esistente is null) db.Pricing.Add(esempio);
+                else esistente.Spread ??= esempio.Spread;
+            }
+            db.SaveChanges();
+        }
+
         if (db.Prodotti.Any()) return;
 
-        db.Indici.Add(new IndiceRiferimento { Codice = "EUR3M", Descrizione = "Euribor 3 mesi", Valore = 2.05m, DataRilevazione = new DateOnly(2026, 10, 1) });
+        if (!db.Pricing.Any()) db.Pricing.AddRange(PricingEsempio());
 
         db.Prodotti.AddRange(
             MutuoFisso(), MutuoVariabile(), MutuoGiovani(), MutuoTerritorio(),
@@ -27,6 +46,17 @@ public static class DatiIniziali
 
         db.SaveChanges();
     }
+
+    private static readonly DateOnly Rilevazione = new(2026, 10, 1);
+
+    private static List<Pricing> PricingEsempio() =>
+    [
+        new() { Codice = "EUR1M", Descrizione = "Euribor 1 mese", Valore = 1.95m, Spread = 1.40m, DataRilevazione = Rilevazione },
+        new() { Codice = "EUR3M", Descrizione = "Euribor 3 mesi", Valore = 2.05m, Spread = 1.20m, DataRilevazione = Rilevazione },
+        new() { Codice = "EUR6M", Descrizione = "Euribor 6 mesi", Valore = 2.12m, Spread = 1.10m, DataRilevazione = Rilevazione },
+        new() { Codice = "EUR3M-GIO", Descrizione = "Euribor 3 mesi, spread agevolato giovani", Valore = 2.05m, Spread = 0.85m, DataRilevazione = Rilevazione },
+        new() { Codice = "BCE", Descrizione = "Tasso BCE operazioni di rifinanziamento principali", Valore = 2.15m, Spread = 3.50m, DataRilevazione = Rilevazione }
+    ];
 
     private static IEnumerable<CondizioneAnagrafica> AnagraficaCondizioni() =>
     [
@@ -50,7 +80,8 @@ public static class DatiIniziali
         Descrizione = descrizione,
         Tipologia = TipologiaProdotto.Mutuo,
         TipoTasso = tipoTasso,
-        IndiceRiferimento = tipoTasso == TipoTasso.Variabile ? "EUR3M" : null,
+        CodicePricing = tipoTasso == TipoTasso.Variabile ? "EUR3M" : null,
+        Spread = tipoTasso == TipoTasso.Variabile ? 1.20m : null,
         FinalitaAmmesse = [.. finalita],
         ImportoMinimo = 50_000,
         ImportoMassimo = 1_000_000,
@@ -106,12 +137,12 @@ public static class DatiIniziali
 
     private static Prodotto MutuoVariabile()
     {
-        var p = Mutuo("MUT-VAR", "Mutuo Casa Tasso Variabile", "Tasso legato all'Euribor 3 mesi più uno spread fisso.",
+        var p = Mutuo("MUT-VAR", "Mutuo Casa Tasso Variabile", "Tasso legato all'Euribor 3 mesi più lo spread del pricing EUR3M, ridotto per LTV fino al 60%.",
             TipoTasso.Variabile, Finalita.AcquistoPrimaCasa, Finalita.AcquistoSecondaCasa, Finalita.Surroga);
         p.Condizioni =
         [
-            Tasso("SPR1", "Spread su Euribor 3M, LTV fino al 60%", 0.95m, ltvA: 60),
-            Tasso("SPR2", "Spread su Euribor 3M, LTV oltre il 60%", 1.20m, ltvDa: 60),
+            // Oltre il 60% di LTV vale lo spread importato dal pricing EUR3M (1,20%).
+            Tasso("SPR1", "Spread agevolato su Euribor 3M, LTV fino al 60%", 0.95m, ltvA: 60),
             .. CostiMutuo()
         ];
         return p;

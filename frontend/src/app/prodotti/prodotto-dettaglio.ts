@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -13,7 +14,7 @@ const oggi = () => new Date().toISOString().slice(0, 10);
 
 @Component({
   selector: 'app-prodotto-dettaglio',
-  imports: [Importo, ReactiveFormsModule, CondizioniProdotto],
+  imports: [DecimalPipe, Importo, ReactiveFormsModule, CondizioniProdotto],
   templateUrl: './prodotto-dettaglio.html',
 })
 export class ProdottoDettaglio {
@@ -25,7 +26,7 @@ export class ProdottoDettaglio {
   readonly id = input<string>();
 
   protected readonly tabelle = toSignal(this.api.tabelle$);
-  protected readonly indici = toSignal(this.api.indici(), { initialValue: [] });
+  protected readonly pricing = toSignal(this.api.pricing(), { initialValue: [] });
   protected readonly scheda = signal<Scheda>('generali');
   protected readonly chiuse = signal<Set<string>>(new Set());
   protected readonly errore = signal<string | null>(null);
@@ -41,7 +42,8 @@ export class ProdottoDettaglio {
     descrizione: [''],
     tipologia: ['Mutuo' as TipologiaProdotto, Validators.required],
     tipoTasso: ['Fisso' as TipoTasso, Validators.required],
-    indiceRiferimento: [null as string | null],
+    codicePricing: [null as string | null],
+    spread: [null as number | null],
     attivo: [true],
     dataInizioValidita: [oggi(), Validators.required],
     dataFineValidita: [null as string | null],
@@ -86,6 +88,26 @@ export class ProdottoDettaglio {
     });
   }
 
+  /** Pricing richiamato nel form, per mostrarne indice e spread di riferimento. */
+  protected readonly pricingScelto = toSignal(this.form.controls.codicePricing.valueChanges, {
+    initialValue: this.form.controls.codicePricing.value,
+  });
+  protected readonly datiPricing = computed(() =>
+    this.pricing().find((p) => p.codice === this.pricingScelto()),
+  );
+
+  /**
+   * Richiamando un pricing dal prodotto se ne importa lo spread, che resta modificabile.
+   * Si chiama solo alla scelta dell'utente, così il caricamento del prodotto non lo sovrascrive.
+   */
+  protected importaSpread(): void {
+    const pricing = this.datiPricing();
+    if (pricing) {
+      this.form.controls.spread.setValue(pricing.spread);
+      this.form.controls.spread.markAsDirty();
+    }
+  }
+
   protected sezioneChiusa(nome: string): boolean {
     return this.chiuse().has(nome);
   }
@@ -123,11 +145,13 @@ export class ProdottoDettaglio {
       return;
     }
     const v = this.form.getRawValue();
+    const variabile = v.tipoTasso === 'Variabile';
     const prodotto: Prodotto = {
       ...v,
       id: this.prodottoId(),
       descrizione: v.descrizione || null,
-      indiceRiferimento: v.tipoTasso === 'Variabile' ? v.indiceRiferimento : null,
+      codicePricing: variabile ? v.codicePricing : null,
+      spread: variabile ? v.spread : null,
       dataFineValidita: v.dataFineValidita || null,
       ltvMassimo: v.tipologia === 'Mutuo' ? v.ltvMassimo : null,
       provinceAmmesse: v.provinceAmmesse

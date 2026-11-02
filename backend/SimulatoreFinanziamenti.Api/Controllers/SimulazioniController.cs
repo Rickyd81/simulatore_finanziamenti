@@ -14,7 +14,7 @@ public class SimulazioniController(SimulatoreDbContext db, MotoreSimulazione mot
     public async Task<RisultatoSimulazione> Simula(RichiestaSimulazione richiesta)
     {
         var prodotti = await db.Prodotti.AsNoTracking().Include(p => p.Condizioni).Where(p => p.Attivo).ToListAsync();
-        var indici = await db.Indici.AsNoTracking().ToListAsync();
+        var indici = await db.Pricing.AsNoTracking().ToListAsync();
         return motore.Simula(richiesta, prodotti, indici);
     }
 }

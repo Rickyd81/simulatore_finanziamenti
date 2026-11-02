@@ -11,7 +11,7 @@ namespace SimulatoreFinanziamenti.Api.Data;
 /// </summary>
 public static class AggiornamentoSchema
 {
-    /// <returns>I nomi delle tabelle create.</returns>
+    /// <returns>I nomi delle tabelle create e, nella forma "Tabella.Colonna", delle colonne aggiunte.</returns>
     public static HashSet<string> Applica(SimulatoreDbContext db)
     {
         var connessione = db.Database.GetDbConnection();
@@ -47,6 +47,7 @@ public static class AggiornamentoSchema
                     if (!proprieta.IsNullable)
                         throw new InvalidOperationException($"Impossibile aggiungere la colonna obbligatoria {tabella}.{colonna} a un database esistente");
                     Esegui(connessione, $"ALTER TABLE \"{tabella}\" ADD COLUMN \"{colonna}\" {proprieta.GetColumnType()} NULL");
+                    create.Add($"{tabella}.{colonna}");
                 }
             }
             return create;

@@ -24,7 +24,8 @@ public abstract class DatiCondizione
 
     /// <summary>
     /// Valore della condizione. Per la categoria Tasso è il TAN annuo in percentuale,
-    /// oppure lo spread da sommare all'indice di riferimento per i prodotti a tasso variabile.
+    /// oppure lo spread da sommare all'indice del pricing per i prodotti a tasso variabile
+    /// (sostituisce, per la sua fascia, lo spread importato dal pricing).
     /// </summary>
     public decimal Valore { get; set; }
 
