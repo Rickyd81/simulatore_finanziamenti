@@ -22,8 +22,9 @@ builder.Services.AddOpenApi(o => o.AddDocumentTransformer((documento, _, _) =>
     documento.Info.Description = "API del portale: simulazione, fabbrica prodotti e richiesta di finanziamento verso il core banking.";
     return Task.CompletedTask;
 }));
+// SQLite in locale e nei test, PostgreSQL (es. Neon) quando la stringa di connessione è un URL postgresql://.
 builder.Services.AddDbContext<SimulatoreDbContext>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("Simulatore") ?? "Data Source=simulatore.db"));
+    ConfigurazioneDatabase.Usa(o, builder.Configuration.GetConnectionString("Simulatore")));
 builder.Services.AddSingleton<MotoreSimulazione>();
 builder.Services.AddSingleton(TimeProvider.System);
 // Sostituire con l'adattatore del core banking reale quando sarà disponibile.
