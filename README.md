@@ -30,7 +30,7 @@ L'indagine sui simulatori esistenti da cui nascono queste scelte è in
 ## Struttura
 
 ```
-backend/   API ASP.NET Core (.NET 10), EF Core su SQLite, test xUnit
+backend/   API ASP.NET Core (.NET 10), EF Core su SQLite o PostgreSQL, test xUnit
 frontend/  Angular 22 (componenti standalone, signal, zoneless)
 docs/      documentazione funzionale
 ```
@@ -51,6 +51,30 @@ npm start
 ```
 
 Per ripartire dal catalogo di esempio basta cancellare `simulatore.db` e riavviare l'API.
+
+## Database
+
+L'applicazione sceglie il database dalla stringa di connessione `ConnectionStrings:Simulatore`
+(variabile d'ambiente `ConnectionStrings__Simulatore`):
+
+- **SQLite** (predefinito): `Data Source=simulatore.db`. Comodo in locale e nei test, ma su Render
+  il file sta sul disco del container e si azzera a ogni deploy o riavvio.
+- **PostgreSQL**: un URL `postgresql://utente:password@host/database?sslmode=require` (il formato
+  che fornisce Neon) oppure una stringa Npgsql `Host=...;Database=...;Username=...;Password=...`.
+
+Al primo avvio su un database vuoto l'API crea le tabelle e carica il catalogo di esempio; agli
+avvii successivi aggiunge solo tabelle e colonne nuove, senza toccare i dati.
+
+### Neon (PostgreSQL gratuito)
+
+1. Su [neon.tech](https://neon.tech) crea un progetto nella regione **AWS Europe Central 1
+   (Frankfurt)**, vicina al servizio Render.
+2. Dalla pagina del progetto, *Connect*, copia la connection string (`postgresql://...`).
+3. Su Render, nel servizio *simulatore-finanziamenti*, *Environment*, aggiungi
+   `ConnectionStrings__Simulatore` con quell'URL e salva: il servizio si riavvia sul nuovo database.
+
+Il piano gratuito di Neon sospende il database quando non è usato: la prima richiesta dopo una
+pausa impiega qualche istante in più.
 
 ## Test
 

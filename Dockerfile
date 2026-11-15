@@ -18,7 +18,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=backend /app ./
 COPY --from=frontend /src/dist/frontend/browser ./wwwroot
-# Il database SQLite sta in /app/data: montare qui un disco persistente per conservare i dati.
+# Senza configurazione il database SQLite sta in /app/data (montare qui un disco persistente per conservare i dati).
+# Per usare PostgreSQL (es. Neon) impostare ConnectionStrings__Simulatore con l'URL postgresql://... del database.
 RUN mkdir -p /app/data && chown -R app:app /app/data
 ENV ConnectionStrings__Simulatore="Data Source=/app/data/simulatore.db" \
     ASPNETCORE_HTTP_PORTS=8080

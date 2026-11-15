@@ -15,7 +15,9 @@ public class SimulatoreDbContext(DbContextOptions<SimulatoreDbContext> options) 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // SQLite non ha un tipo decimal nativo: lo salviamo come testo per non perdere precisione.
-        configurationBuilder.Properties<decimal>().HaveConversion<string>();
+        // PostgreSQL usa il suo tipo numeric, già esatto.
+        if (Database.IsSqlite())
+            configurationBuilder.Properties<decimal>().HaveConversion<string>();
         configurationBuilder.Properties<Enum>().HaveConversion<string>();
     }
 

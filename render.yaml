@@ -12,3 +12,7 @@ services:
       # Password dell'area banca: Render la chiede alla creazione del servizio.
       - key: AreaBanca__Password
         sync: false
+      # Database PostgreSQL (es. Neon): incollare l'URL postgresql://... fornito dal servizio.
+      # Senza questa variabile l'app usa SQLite sul disco del container, che si azzera a ogni riavvio.
+      - key: ConnectionStrings__Simulatore
+        sync: false

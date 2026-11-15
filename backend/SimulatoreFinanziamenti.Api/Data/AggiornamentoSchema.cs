@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace SimulatoreFinanziamenti.Api.Data;
 
 /// <summary>
-/// Allinea un database SQLite creato da una versione precedente al modello attuale:
+/// Allinea un database (SQLite o PostgreSQL) creato da una versione precedente al modello attuale:
 /// crea le tabelle mancanti (con i relativi indici) e aggiunge le colonne nullable mancanti.
 /// Non modifica né cancella mai tabelle o colonne esistenti.
 /// </summary>
@@ -19,7 +19,10 @@ public static class AggiornamentoSchema
         if (daChiudere) connessione.Open();
         try
         {
-            var esistenti = Elenco(connessione, "SELECT name FROM sqlite_master WHERE type = 'table'");
+            var sqlite = db.Database.IsSqlite();
+            var esistenti = Elenco(connessione, sqlite
+                ? "SELECT name FROM sqlite_master WHERE type = 'table'"
+                : "SELECT table_name FROM information_schema.tables WHERE table_schema = current_schema()");
             var create = new HashSet<string>();
             // Lo script di creazione completo, diviso in istruzioni: si eseguono solo quelle delle tabelle mancanti.
             var istruzioni = db.Database.GenerateCreateScript().ReplaceLineEndings("\n")
@@ -38,7 +41,9 @@ public static class AggiornamentoSchema
                     continue;
                 }
 
-                var colonne = Elenco(connessione, $"SELECT name FROM pragma_table_info('{tabella}')");
+                var colonne = Elenco(connessione, sqlite
+                    ? $"SELECT name FROM pragma_table_info('{tabella}')"
+                    : $"SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = '{tabella}'");
                 var tabellaStore = StoreObjectIdentifier.Table(tabella, null);
                 foreach (var proprieta in entita.GetProperties())
                 {
